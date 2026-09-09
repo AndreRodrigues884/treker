@@ -175,7 +175,7 @@ export function ExerciseCard({
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {Array.from({ length: exercise.sets }, (_, i) => i + 1).map((n) => {
           const savedInDb = todaySets.some((s) => s.set_number === n);
           const staged = !!getPendingSet(exercise.id, n);

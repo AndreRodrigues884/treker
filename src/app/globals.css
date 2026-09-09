@@ -22,3 +22,24 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Belt-and-suspenders against any accidental horizontal overflow (a
+   decorative blob, a chart, a drawer mid-transition) ever becoming a
+   visible horizontal scrollbar — this app is meant to never scroll
+   sideways on any device. */
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* iOS Safari zooms the whole page in when a focused form field's
+   font-size is under 16px — Tailwind's text-sm (14px), used on most of
+   our inputs, triggers this. Plain rules here sit outside Tailwind's
+   cascade layers, so this wins over the utility class without needing
+   !important. Chrome/Android has no such threshold, which is why this
+   only ever showed up on iPhone. */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
