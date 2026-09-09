@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, getProfile } from "@/lib/supabase/queries";
-import { OnboardingForm } from "@/components/forms/onboarding-form";
+import { PreferencesForm } from "@/components/forms/preferences-form";
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -16,10 +16,9 @@ export default async function SettingsPage() {
           Change which sports you track and your goals.
         </p>
       </div>
-      <OnboardingForm
+      <PreferencesForm
         defaultModalities={profile?.modalities ?? []}
         defaultGoals={profile?.goals ?? []}
-        submitLabel="Save changes"
       />
     </div>
   );

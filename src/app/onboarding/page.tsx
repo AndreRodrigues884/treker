@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, getProfile } from "@/lib/supabase/queries";
-import { OnboardingForm } from "@/components/forms/onboarding-form";
+import { OnboardingWizard } from "@/components/forms/onboarding-wizard";
 
 export default async function OnboardingPage() {
   const user = await getCurrentUser();
@@ -10,16 +10,12 @@ export default async function OnboardingPage() {
   if (profile?.onboarding_completed) redirect("/dashboard");
 
   return (
-    <main className="min-h-screen bg-linear-to-br from-slate-950 via-indigo-950 to-slate-950 px-6 py-16 text-zinc-100">
-      <div className="mx-auto max-w-2xl space-y-10">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">Set up your training</h1>
-          <p className="text-zinc-400">
-            Pick what you&apos;re training for and which sports you want to
-            track. You can change this anytime in Settings.
-          </p>
-        </div>
-        <OnboardingForm
+    <main className="relative flex h-dvh flex-col overflow-hidden bg-slate-950 px-6 py-6 text-zinc-100">
+      <div className="pointer-events-none absolute -top-32 -left-24 h-80 w-80 rounded-full bg-indigo-600/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-24 h-80 w-80 rounded-full bg-violet-600/20 blur-3xl" />
+
+      <div className="relative mx-auto flex h-full w-full max-w-md flex-1 flex-col">
+        <OnboardingWizard
           defaultModalities={profile?.modalities ?? []}
           defaultGoals={profile?.goals ?? []}
         />
