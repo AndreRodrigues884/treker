@@ -52,19 +52,21 @@ export function ExerciseCard({
   function findLastSet(setNumber: number) {
     return lastSession?.find((s) => s.set_number === setNumber);
   }
+  // Deliberately empty (not pre-filled from last session) unless
+  // already staged/saved today — showing last time's numbers as the
+  // placeholder instead means confirming a set always takes a
+  // conscious keystroke, rather than silently re-submitting old data.
   function weightFor(setNumber: number) {
     const p = getPendingSet(exercise.id, setNumber);
     if (p) return p.weightKg != null ? String(p.weightKg) : "";
     const t = findTodaySet(setNumber);
-    if (t?.weight_kg != null) return String(t.weight_kg);
-    const l = findLastSet(setNumber);
-    if (l?.weight_kg != null) return String(l.weight_kg);
-    return "";
+    return t?.weight_kg != null ? String(t.weight_kg) : "";
   }
   function repsFor(setNumber: number) {
     const p = getPendingSet(exercise.id, setNumber);
     if (p) return String(p.reps);
-    return String(findTodaySet(setNumber)?.reps ?? exercise.reps);
+    const t = findTodaySet(setNumber);
+    return t ? String(t.reps) : "";
   }
   function executionTypeFor(setNumber: number): ExecutionType {
     return (
@@ -106,8 +108,21 @@ export function ExerciseCard({
     setActiveSet(activeSet === n ? null : n);
   }
 
+  function handleCancel() {
+    // Nothing was ever written to pending/today from the inputs below —
+    // closing just discards whatever was typed. Reopening this same set
+    // re-derives fresh values (see the render-time sync above), so
+    // there's nothing else to "reset" explicitly.
+    setError(null);
+    setActiveSet(null);
+  }
+
   function handleConfirm() {
     if (activeSet === null) return;
+    if (reps.trim() === "") {
+      setError("Enter the reps you did.");
+      return;
+    }
     const parsedReps = Number(reps);
     if (!Number.isInteger(parsedReps) || parsedReps < 0) {
       setError("Enter a valid number of reps.");
@@ -257,7 +272,12 @@ export function ExerciseCard({
                   min={0}
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
-                  className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+                  placeholder={
+                    lastSetForActive?.weight_kg != null
+                      ? String(lastSetForActive.weight_kg)
+                      : undefined
+                  }
+                  className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
                 />
               </label>
             )}
@@ -268,7 +288,12 @@ export function ExerciseCard({
                 min={0}
                 value={reps}
                 onChange={(e) => setReps(e.target.value)}
-                className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+                placeholder={
+                  lastSetForActive
+                    ? String(lastSetForActive.reps)
+                    : String(exercise.reps)
+                }
+                className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
               />
             </label>
           </div>
@@ -293,7 +318,7 @@ export function ExerciseCard({
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {DIFFICULTIES.map((d) => (
               <button
                 key={d.value}
@@ -308,13 +333,6 @@ export function ExerciseCard({
                 {d.label}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={handleConfirm}
-              className="flex items-center justify-center rounded-lg bg-cyan-500 text-sm font-semibold text-zinc-950 transition hover:brightness-110"
-            >
-              OK
-            </button>
           </div>
 
           {error && (
@@ -322,6 +340,23 @@ export function ExerciseCard({
               {error}
             </p>
           )}
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="flex-1 rounded-lg border border-zinc-800 px-2 py-2 text-sm text-zinc-300 transition hover:border-zinc-600"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="flex-1 rounded-lg bg-cyan-500 text-sm font-semibold text-zinc-950 transition hover:brightness-110"
+            >
+              OK
+            </button>
+          </div>
         </div>
       )}
     </div>
