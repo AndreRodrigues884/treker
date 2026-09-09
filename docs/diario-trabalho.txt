@@ -195,6 +195,27 @@ DIÁRIO DE TRABALHO — projeto treker
      que revela os grupos ainda não usados — só mostra a grelha completa
      quando não há nenhum treino criado ainda.
 
+16. Correção: "OK" fecha a série de volta
+   - Faltava fechar o bloco expandido depois de gravar localmente uma
+     série — agora clicar OK volta a colapsar, tal como abrir com o
+     número da série.
+
+17. Nova tab "Statistics" (estatísticas do Gym)
+   - Estatísticas cruzando TODOS os exercícios do user (não um grupo
+     muscular só): Força Total (soma dos melhores 1RM estimados por
+     exercício), 1RM Estimado (lista por exercício, fórmula de Epley:
+     peso × (1 + reps/30)), Volume por grupo muscular (séries nas
+     últimas 8 semanas, gráfico de barras horizontal), Análise de
+     Deload (exercícios cujas últimas 3+ sessões não melhoraram),
+     Treinos por semana (média de dias de treino distintos por semana
+     ISO, semana a começar à segunda-feira).
+   - Toda a lógica de cálculo isolada em src/lib/gym/derive.ts (pura,
+     sem tocar na BD), com 9 testes novos.
+   - Novo item "Statistics" na sidebar (partilhado entre desktop e
+     drawer mobile), só visível quando Gym está entre as modalidades
+     escolhidas — as estatísticas ainda só fazem sentido para esse
+     módulo.
+
 PENDENTE (para os próximos dias):
    - Criar conta/DB no Upstash para produção (por agora o .env.local e a
      Vercel usam valores de placeholder/local — nada usa Redis a sério
