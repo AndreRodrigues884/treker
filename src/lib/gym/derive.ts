@@ -133,7 +133,7 @@ export function plateauExercises(
 }
 
 /** Monday-start ISO week key for a YYYY-MM-DD date string. */
-function isoWeekStart(dateStr: string): string {
+export function isoWeekStart(dateStr: string): string {
   const d = new Date(`${dateStr}T00:00:00Z`);
   const day = d.getUTCDay(); // 0 = Sunday .. 6 = Saturday
   const diffToMonday = day === 0 ? -6 : 1 - day;
@@ -155,4 +155,28 @@ export function averageSessionsPerWeek(sets: ExerciseSet[]): number {
   }
 
   return uniqueDates.length / sessionsPerWeek.size;
+}
+
+/** Most recent session_date across every set, or null if there's none. */
+export function lastSessionDate(sets: ExerciseSet[]): string | null {
+  if (sets.length === 0) return null;
+  return sets.reduce(
+    (latest, s) => (s.session_date > latest ? s.session_date : latest),
+    sets[0].session_date,
+  );
+}
+
+/** Total sets logged since this (Monday-start) week began. */
+export function setsThisWeek(sets: ExerciseSet[]): number {
+  const monday = isoWeekStart(todayISO());
+  return sets.filter((s) => s.session_date >= monday).length;
+}
+
+/** Distinct workout days logged since this (Monday-start) week began. */
+export function sessionsThisWeek(sets: ExerciseSet[]): number {
+  const monday = isoWeekStart(todayISO());
+  const datesThisWeek = new Set(
+    sets.filter((s) => s.session_date >= monday).map((s) => s.session_date),
+  );
+  return datesThisWeek.size;
 }

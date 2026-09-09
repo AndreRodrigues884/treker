@@ -3,11 +3,15 @@ import {
   averageSessionsPerWeek,
   bestOneRepMaxPerExercise,
   estimatedOneRepMax,
+  isoWeekStart,
   lastSessionBefore,
+  lastSessionDate,
   plateauExercises,
   progressHistory,
+  sessionsThisWeek,
   setsForDate,
   setsPerMuscleGroup,
+  setsThisWeek,
   totalStrength,
 } from "./derive";
 import type { Exercise, ExerciseSet } from "@/lib/gym/queries";
@@ -199,6 +203,40 @@ describe("averageSessionsPerWeek", () => {
 
   it("is zero with no sets", () => {
     expect(averageSessionsPerWeek([])).toBe(0);
+  });
+});
+
+describe("lastSessionDate", () => {
+  it("returns the most recent session_date across every set", () => {
+    const sets = [
+      makeSet({ session_date: "2026-01-01" }),
+      makeSet({ session_date: "2026-03-15" }),
+      makeSet({ session_date: "2026-02-01" }),
+    ];
+    expect(lastSessionDate(sets)).toBe("2026-03-15");
+  });
+
+  it("is null with no sets", () => {
+    expect(lastSessionDate([])).toBeNull();
+  });
+});
+
+describe("setsThisWeek / sessionsThisWeek", () => {
+  it("only counts sets on or after this week's Monday", () => {
+    const monday = isoWeekStart(todayISOForTest());
+    const sets = [
+      makeSet({ session_date: monday, set_number: 1 }),
+      makeSet({ session_date: monday, set_number: 2 }),
+      makeSet({ session_date: "2000-01-01" }), // long before this week
+    ];
+    expect(setsThisWeek(sets)).toBe(2);
+    expect(sessionsThisWeek(sets)).toBe(1); // both sets share the same day
+  });
+
+  it("are both zero with no sets this week", () => {
+    const sets = [makeSet({ session_date: "2000-01-01" })];
+    expect(setsThisWeek(sets)).toBe(0);
+    expect(sessionsThisWeek(sets)).toBe(0);
   });
 });
 
