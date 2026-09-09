@@ -10,8 +10,13 @@ import type { Tables } from "@/lib/supabase/database.types";
 
 export const getCurrentUser = cache(async () => {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  return data.user;
+  // getSession() reads the already-verified cookie with no network call —
+  // safe here specifically because src/proxy.ts already called getUser()
+  // (which does hit the Auth server) on this very request, before it ever
+  // reached this render. Using getUser() again here would just repeat
+  // that same network round-trip on every single navigation.
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user ?? null;
 });
 
 export const getProfile = cache(async (userId: string) => {
