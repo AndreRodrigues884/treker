@@ -85,10 +85,52 @@ DIÁRIO DE TRABALHO — projeto treker
    - Confirmado: /auth/v1/health local responde 200, `npm run dev`
      arranca e a homepage responde 200.
 
+9. Vercel ligado
+   - Repositório importado no dashboard da Vercel, 5 env vars de
+     produção gravadas (Supabase cloud + Upstash — este último ainda
+     com placeholder, ver pendências).
+   - Primeiro deploy falhou com ERESOLVE (conflito de peer dependencies
+     entre vitest 5 / vite 8 / @vitejs/plugin-react 6). Corrigido com um
+     .npmrc (legacy-peer-deps=true) — mesma resolução que já usávamos
+     localmente, agora aplicada também no build da Vercel.
+   - Deploy a funcionar: treker-beta.vercel.app (domínio estável) e um
+     URL específico por deployment.
+
+10. Primeiro fluxo real de páginas: landing → auth → onboarding → dashboard
+   - Nova tabela `profiles` (migration
+     20260909010000_profiles.sql): enums fixos `modality`
+     (gym/swimming/running) e `training_goal`, RLS (cada user só vê/edita
+     a própria linha), trigger para updated_at. Tipos TypeScript gerados
+     (database.types.ts) e ligados aos clients Supabase (createClient<Database>).
+   - Landing page em "/" — tema escuro fixo com gradiente, copy em
+     inglês, botões "Sign up" / "Log in". Se já houver sessão, redireciona
+     automaticamente para /onboarding ou /dashboard.
+   - /signup e /login — formulários com Server Actions (useActionState),
+     Zod a validar. Sign up trata os dois casos: sessão imediata (dev
+     local, confirmação de email desligada) ou "confirma o teu email"
+     (produção, confirmação ligada).
+   - /onboarding — escolha de desportos (gym/natação/corrida) e objetivos
+     a partir de listas fixas (checkboxes, não texto livre), grava na
+     tabela profiles e marca onboarding_completed.
+   - /dashboard — layout com sidebar que só mostra as tabs das
+     modalidades escolhidas; /dashboard/[modality] bloqueia o acesso a
+     uma modalidade não escolhida; /dashboard/settings reutiliza o mesmo
+     formulário do onboarding para mudar a escolha mais tarde.
+   - Validado de ponta a ponta contra o Supabase local: criação de user
+     real via API de signup, upsert do profile como esse user (a provar
+     que a RLS deixa), e confirmado que só lê a própria linha — tudo via
+     chamadas REST diretas, sem passar pela service_role key.
+   - build, typecheck, lint e testes (vitest) confirmados a passar.
+
 PENDENTE (para os próximos dias):
-   - Ligar o Vercel ao repositório do GitHub e configurar as variáveis
-     de ambiente de produção (usar as chaves cloud, não as locais).
-   - Criar conta/DB no Upstash para produção (por agora o .env.local usa
-     o proxy Docker local).
-   - Desenhar o schema real da base de dados e escrever as policies de
-     RLS (o ficheiro de migration atual é só um placeholder/exemplo).
+   - Criar conta/DB no Upstash para produção (por agora o .env.local e a
+     Vercel usam valores de placeholder/local — nada usa Redis a sério
+     ainda).
+   - CRUD do plano de treino (dias, exercícios por grupo muscular de
+     lista pré-definida).
+   - Dashboards fixos por modalidade (para já só há páginas placeholder
+     "coming soon" em /dashboard/gym, /dashboard/swimming,
+     /dashboard/running).
+   - Configurar Site URL / Redirect URLs no Supabase cloud para os links
+     de confirmação de email funcionarem em produção.
+   - Módulo de Natação e Corrida (métricas, tempos, ranks).
