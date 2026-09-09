@@ -21,11 +21,17 @@ export const getCurrentUser = cache(async () => {
 
 export const getProfile = cache(async (userId: string) => {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", userId)
     .maybeSingle();
+  // A real error (missing table, RLS misconfigured, network) is not the
+  // same thing as "no profile row yet" (a brand new user) — treating
+  // both as null silently sent users to onboarding or dashboard
+  // unpredictably depending on which query happened to fail. Throwing
+  // surfaces it as a visible error page instead.
+  if (error) throw new Error(`Failed to load profile: ${error.message}`);
   return data;
 });
 
