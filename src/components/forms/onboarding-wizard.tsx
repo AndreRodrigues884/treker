@@ -91,6 +91,7 @@ export function OnboardingWizard({
                   key={m.value}
                   selected={modalities.includes(m.value)}
                   onClick={() => setModalities(toggle(modalities, m.value))}
+                  icon={m.icon}
                   className="py-5"
                 >
                   {m.label}
@@ -112,6 +113,7 @@ export function OnboardingWizard({
                   key={g.value}
                   selected={goals.includes(g.value)}
                   onClick={() => setGoals(toggle(goals, g.value))}
+                  icon={g.icon}
                   className={`py-3.5 ${
                     i === TRAINING_GOALS.length - 1 &&
                     TRAINING_GOALS.length % 2 === 1

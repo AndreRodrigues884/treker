@@ -57,6 +57,7 @@ export function PreferencesForm({
               key={m.value}
               selected={modalities.includes(m.value)}
               onClick={() => setModalities(toggle(modalities, m.value))}
+              icon={m.icon}
               className="py-3"
             >
               {m.label}
@@ -75,6 +76,7 @@ export function PreferencesForm({
               key={g.value}
               selected={goals.includes(g.value)}
               onClick={() => setGoals(toggle(goals, g.value))}
+              icon={g.icon}
               className="py-3"
             >
               {g.label}

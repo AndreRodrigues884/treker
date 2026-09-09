@@ -3,11 +3,13 @@
 export function ToggleCard({
   selected,
   onClick,
+  icon,
   children,
   className = "",
 }: {
   selected: boolean;
   onClick: () => void;
+  icon?: string;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -16,12 +18,13 @@ export function ToggleCard({
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`rounded-2xl border text-sm font-medium transition ${
+      className={`flex flex-col items-center gap-1.5 rounded-2xl border text-sm font-medium transition ${
         selected
           ? "border-indigo-400 bg-indigo-500/10 text-white"
           : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
       } ${className}`}
     >
+      {icon && <span className="text-xl leading-none">{icon}</span>}
       {children}
     </button>
   );

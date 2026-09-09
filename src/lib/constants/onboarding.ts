@@ -1,22 +1,24 @@
 /**
- * Fixed, pre-defined onboarding choices. Values must match the Postgres
- * enums in supabase/migrations (`modality`, `training_goal`) — kept as
- * closed lists rather than free text, so dashboards/aggregations built on
- * top stay consistent.
+ * Fixed, pre-defined onboarding choices. `value`/`label` must match the
+ * Postgres enums in supabase/migrations (`modality`, `training_goal`) —
+ * kept as closed lists rather than free text, so dashboards/aggregations
+ * built on top stay consistent. `icon`/`tint` are purely presentational,
+ * reused everywhere a sport/goal shows up (nav, onboarding, settings) so
+ * the same emoji+color always means the same thing.
  */
 
 export const MODALITIES = [
-  { value: "gym", label: "Gym" },
-  { value: "swimming", label: "Swimming" },
-  { value: "running", label: "Running" },
+  { value: "gym", label: "Gym", icon: "🏋️", tint: "bg-orange-500/15" },
+  { value: "swimming", label: "Swimming", icon: "🏊", tint: "bg-blue-500/15" },
+  { value: "running", label: "Running", icon: "🏃", tint: "bg-emerald-500/15" },
 ] as const;
 
 export const TRAINING_GOALS = [
-  { value: "build_muscle", label: "Build muscle / strength" },
-  { value: "lose_weight", label: "Lose weight / fat" },
-  { value: "improve_endurance", label: "Improve endurance" },
-  { value: "general_fitness", label: "General health & fitness" },
-  { value: "performance", label: "Improve performance / competition" },
+  { value: "build_muscle", label: "Build muscle / strength", icon: "💪" },
+  { value: "lose_weight", label: "Lose weight / fat", icon: "🔥" },
+  { value: "improve_endurance", label: "Improve endurance", icon: "⚡" },
+  { value: "general_fitness", label: "General health & fitness", icon: "🌱" },
+  { value: "performance", label: "Improve performance / competition", icon: "🏆" },
 ] as const;
 
 export type Modality = (typeof MODALITIES)[number]["value"];
