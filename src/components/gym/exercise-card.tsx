@@ -119,6 +119,7 @@ export function ExerciseCard({
       executionType,
       difficulty,
     });
+    setActiveSet(null);
   }
 
   if (editing) {
