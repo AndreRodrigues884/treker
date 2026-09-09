@@ -122,15 +122,66 @@ DIÁRIO DE TRABALHO — projeto treker
      chamadas REST diretas, sem passar pela service_role key.
    - build, typecheck, lint e testes (vitest) confirmados a passar.
 
+11. Vercel: primeiro deploy real + correção de dependências
+   - Repo importado no dashboard da Vercel, 5 env vars gravadas
+     (Supabase cloud + Upstash, este último ainda placeholder).
+   - Primeiro deploy falhou (ERESOLVE — conflito de peer dependencies
+     entre vitest 5 / vite 8 / @vitejs/plugin-react 6). Corrigido com um
+     `.npmrc` (legacy-peer-deps=true), mesma resolução já usada
+     localmente. Deploy a funcionar em treker-beta.vercel.app.
+
+12. Fluidez da navegação no dashboard
+   - Adicionados `loading.tsx` por rota (esqueletos parecidos com o
+     layout real de cada página, não um genérico) para a troca de tabs
+     não parecer "presa".
+   - Cortado um pedido de rede repetido: `getCurrentUser` já não chama
+     `getUser()` (que revalida por rede) — usa `getSession()` (local),
+     seguro porque o `proxy.ts` já revalidou a sessão nesse mesmo
+     pedido, antes de chegar a qualquer Server Component.
+
+13. Redesign: auth + onboarding + navegação mobile-first
+   - Login/Signup redesenhados: cartão com efeito glass, blobs de
+     gradiente, inputs com ícone, toggle de mostrar password.
+   - Onboarding transformado num assistente de 2 fases (Sports ->
+     Goals), pensado para caber num ecrã de telemóvel sem scroll
+     vertical (h-dvh, sem scroll).
+   - Navegação do dashboard tornada mobile-first: sidebar fixa só a
+     partir de md; no mobile aparece uma barra + hambúrguer que abre
+     uma drawer em overlay. Adotado um padrão de design (badges de
+     ícone coloridos por item, item ativo destacado, cabeçalho com
+     avatar+subtítulo, rodapé com objetivo/email/logout) partilhado
+     entre a sidebar desktop e a drawer mobile (mesmo componente,
+     `SidebarContent`). O mesmo conjunto de ícones passou a ser usado
+     também nos cartões de escolha de desporto/objetivo do onboarding.
+
+14. Módulo Gym: grupos musculares, exercícios, registo de séries
+   - Nova migration: enums `muscle_group` (back/chest/legs/shoulders/
+     biceps/triceps/core), `execution_type`, `set_difficulty`; tabelas
+     `exercises` e `exercise_sets` (uma linha por série, única por
+     exercício+data+número de série, para o botão "OK" fazer upsert em
+     vez de duplicar), ambas com RLS.
+   - /dashboard/gym: escolha de grupo muscular. /dashboard/gym/[grupo]:
+     tabs de troca rápida, formulário de criar/editar exercício (nome,
+     sets, reps, se regista carga ou não), e um cartão por exercício com
+     navegação série a série, comparação "última vez" com a sessão
+     anterior, tipo de execução, dificuldade, e gráfico de progressão
+     automático (SVG feito à mão, sem nova dependência — segue o
+     método do skill de dataviz: linha 2px, fill ~15% opacity, hover
+     com crosshair+tooltip). O gráfico só aparece a partir de 2 sessões
+     registadas; antes disso mostra "falta N sessão(ões)", como pedido.
+   - Lógica de agregação (última sessão, progresso por sessão) isolada
+     em src/lib/gym/derive.ts, com testes unitários próprios.
+   - Validado de ponta a ponta contra o Supabase local: criação de
+     exercício, registo de 2 sessões, confirmação de que reeditar uma
+     série faz upsert (não duplica), e RLS a bloquear outro user de ler
+     o exercício.
+
 PENDENTE (para os próximos dias):
    - Criar conta/DB no Upstash para produção (por agora o .env.local e a
      Vercel usam valores de placeholder/local — nada usa Redis a sério
      ainda).
-   - CRUD do plano de treino (dias, exercícios por grupo muscular de
-     lista pré-definida).
-   - Dashboards fixos por modalidade (para já só há páginas placeholder
-     "coming soon" em /dashboard/gym, /dashboard/swimming,
-     /dashboard/running).
+   - Restantes dashboards fixos por modalidade (Natação e Corrida ainda
+     são só páginas placeholder "coming soon" em /dashboard/[modality]).
    - Configurar Site URL / Redirect URLs no Supabase cloud para os links
      de confirmação de email funcionarem em produção.
    - Módulo de Natação e Corrida (métricas, tempos, ranks).
