@@ -1,10 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import Home from "./page";
+import { LandingHero } from "@/components/landing/landing-hero";
 
-describe("Home", () => {
-  it("renders the Next.js logo", () => {
-    render(<Home />);
-    expect(screen.getByAltText("Next.js logo")).toBeInTheDocument();
+describe("LandingHero", () => {
+  it("links to sign up and log in", () => {
+    render(<LandingHero />);
+
+    expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute(
+      "href",
+      "/signup",
+    );
+    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
   });
 });
