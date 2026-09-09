@@ -1,0 +1,94 @@
+DIÁRIO DE TRABALHO — projeto treker
+====================================
+(um bloco por dia; adicionar no topo ou no fim, o que for mais confortável)
+
+------------------------------------------------------------
+2026-09-09
+------------------------------------------------------------
+
+1. Setup inicial do projeto
+   - Criado o projeto Next.js 16 (App Router, Turbopack, TypeScript)
+     com Tailwind CSS v4 já configurado.
+   - Adicionadas as dependências da stack: @supabase/supabase-js,
+     @supabase/ssr, @upstash/redis, @tanstack/react-query, zod.
+   - Configurado Vitest + React Testing Library (vitest.config.mts,
+     vitest.setup.ts) com um teste de fumo (page.test.tsx) a passar.
+   - Resolvido conflito de versões entre vitest/@vitest/coverage-v8/vite
+     (fixadas nas versões 5.0.0 / 5.0.0 / 8.2.2 para ficarem compatíveis).
+
+2. Integração com Supabase
+   - Criados os clients:
+       src/lib/supabase/client.ts    (Client Components)
+       src/lib/supabase/server.ts    (Server Components / Route Handlers)
+       src/lib/supabase/middleware.ts (refresh de sessão)
+   - Criado src/proxy.ts para o refresh de sessão em cada pedido
+     (Next.js 16 renomeou "middleware" para "proxy" — usado o novo
+     ficheiro/convenção).
+   - Inicializado o projeto Supabase local via CLI (`npx supabase init`):
+       supabase/config.toml
+       supabase/migrations/20260909000000_init.sql (placeholder com
+       exemplo de RLS, para não esquecer de ativar Row Level Security
+       em cada tabela nova).
+
+3. Integração com Upstash Redis
+   - Criado src/lib/redis.ts com o client @upstash/redis.
+   - Criado docker-compose.yml (só para dev local) com:
+       - redis (imagem redis:7-alpine)
+       - redis-http (serverless-redis-http) — proxy que fala o mesmo
+         protocolo REST do Upstash, para o código correr sem alterações
+         contra um Redis local.
+
+4. Configuração geral
+   - src/lib/env.ts — validação das variáveis de ambiente com Zod.
+   - .env.local.example — modelo das variáveis necessárias.
+   - Scripts adicionados ao package.json:
+       test, test:watch, test:coverage, typecheck,
+       db:start / db:stop / db:status / db:types,
+       services:up / services:down
+   - README.md atualizado com toda a explicação de setup e scripts.
+   - Verificado: build (`next build`), typecheck (`tsc --noEmit`),
+     lint (`eslint`) e testes (`vitest run`) — tudo a passar sem erros.
+
+5. Git e GitHub
+   - Detetado que o repositório git estava acidentalmente na pasta
+     pessoal (C:\Users\andre) e não dentro de treker/ — decidido não
+     tocar nesse repo vazio e criar um novo, isolado, dentro de treker/.
+   - `git init -b main` dentro de treker/, commit inicial com os 34
+     ficheiros do setup.
+   - Repositório criado manualmente no GitHub por ti
+     (github.com/AndreRodrigues884/treker) e feito o primeiro push.
+
+6. Ligação ao Supabase real
+   - Criado o projeto no dashboard do Supabase (ref: zoczmfiwcqcuxzsoecwf).
+   - Preenchido .env.local com NEXT_PUBLIC_SUPABASE_URL,
+     NEXT_PUBLIC_SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY corretos
+     (o Project URL foi encontrado a decifrar o próprio JWT da anon key,
+     já que estava difícil de encontrar no dashboard).
+   - Confirmada a ligação: endpoint /auth/v1/health respondeu 200.
+
+7. Docker local
+   - Aberto o Docker Desktop.
+   - Corrido `npm run services:up`: Redis local + proxy REST arrancaram
+     e foram testados com sucesso (SET/GET via HTTP a funcionar).
+   - Corrido `npm run db:start` para arrancar o Supabase local completo
+     (Postgres/Auth/Storage via CLI) — a decorrer/a confirmar.
+
+8. Supabase local confirmado + escolha de ambiente de dev
+   - `npm run db:start` terminou com sucesso: Postgres/Auth/Storage
+     locais a correr (API em http://127.0.0.1:54321, Studio em
+     http://127.0.0.1:54323).
+   - Decidido que o `npm run dev` (dia a dia) usa o Supabase LOCAL, não
+     o cloud — evita risco de estragar dados reais ao desenvolver.
+   - .env.local atualizado: chaves locais ativas, chaves do projeto
+     cloud (zoczmfiwcqcuxzsoecwf) guardadas em comentário para usar só
+     na Vercel (produção).
+   - Confirmado: /auth/v1/health local responde 200, `npm run dev`
+     arranca e a homepage responde 200.
+
+PENDENTE (para os próximos dias):
+   - Ligar o Vercel ao repositório do GitHub e configurar as variáveis
+     de ambiente de produção (usar as chaves cloud, não as locais).
+   - Criar conta/DB no Upstash para produção (por agora o .env.local usa
+     o proxy Docker local).
+   - Desenhar o schema real da base de dados e escrever as policies de
+     RLS (o ficheiro de migration atual é só um placeholder/exemplo).
