@@ -40,3 +40,26 @@ export const getExerciseSets = cache(async (exerciseId: string) => {
     .order("set_number", { ascending: true });
   return data ?? [];
 });
+
+/** Every exercise the user has, across all muscle groups — for the
+ * cross-cutting Statistics page. */
+export const getAllExercises = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("exercises")
+    .select("*")
+    .eq("user_id", userId);
+  return data ?? [];
+});
+
+/** Every logged set the user has, across all exercises — exercise_sets
+ * carries its own user_id, so this doesn't need a join. */
+export const getAllExerciseSets = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("exercise_sets")
+    .select("*")
+    .eq("user_id", userId)
+    .order("session_date", { ascending: true });
+  return data ?? [];
+});

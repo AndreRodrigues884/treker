@@ -41,6 +41,18 @@ export function SidebarContent({
       icon: t.icon,
       tint: t.tint,
     })),
+    // Gym-only for now — the stats themselves (1RM, muscle group volume,
+    // deload) only make sense once there's a Gym module to draw from.
+    ...(tabs.some((t) => t.value === "gym")
+      ? [
+          {
+            href: "/dashboard/statistics",
+            label: "Statistics",
+            icon: "📈",
+            tint: "bg-violet-500/15",
+          },
+        ]
+      : []),
     {
       href: "/dashboard/settings",
       label: "Settings",

@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { lastSessionBefore, progressHistory, setsForDate } from "./derive";
-import type { ExerciseSet } from "@/lib/gym/queries";
+import {
+  averageSessionsPerWeek,
+  bestOneRepMaxPerExercise,
+  estimatedOneRepMax,
+  lastSessionBefore,
+  plateauExercises,
+  progressHistory,
+  setsForDate,
+  setsPerMuscleGroup,
+  totalStrength,
+} from "./derive";
+import type { Exercise, ExerciseSet } from "@/lib/gym/queries";
 
 function makeSet(overrides: Partial<ExerciseSet>): ExerciseSet {
   return {
@@ -13,6 +23,21 @@ function makeSet(overrides: Partial<ExerciseSet>): ExerciseSet {
     reps: 10,
     execution_type: "straight",
     difficulty: "medium",
+    created_at: "",
+    updated_at: "",
+    ...overrides,
+  };
+}
+
+function makeExercise(overrides: Partial<Exercise>): Exercise {
+  return {
+    id: "exercise",
+    user_id: "user",
+    muscle_group: "chest",
+    name: "Bench Press",
+    sets: 3,
+    reps: 10,
+    tracks_load: true,
     created_at: "",
     updated_at: "",
     ...overrides,
@@ -81,3 +106,102 @@ describe("progressHistory", () => {
     ]);
   });
 });
+
+describe("estimatedOneRepMax", () => {
+  it("applies the Epley formula", () => {
+    expect(estimatedOneRepMax(100, 5)).toBeCloseTo(100 * (1 + 5 / 30));
+  });
+
+  it("is zero for zero reps", () => {
+    expect(estimatedOneRepMax(100, 0)).toBe(0);
+  });
+});
+
+describe("bestOneRepMaxPerExercise / totalStrength", () => {
+  it("only considers load-tracking exercises, and takes each one's best set", () => {
+    const bench = makeExercise({ id: "bench", name: "Bench", tracks_load: true });
+    const curl = makeExercise({ id: "curl", name: "Curl", tracks_load: false });
+    const sets = [
+      makeSet({ exercise_id: "bench", weight_kg: 100, reps: 5 }),
+      makeSet({ exercise_id: "bench", weight_kg: 90, reps: 8 }), // worse than the 100x5 set
+      makeSet({ exercise_id: "curl", weight_kg: 20, reps: 10 }), // curl doesn't track load
+    ];
+    const perExercise = bestOneRepMaxPerExercise([bench, curl], sets);
+    expect(perExercise).toEqual([
+      { exerciseId: "bench", exerciseName: "Bench", oneRepMax: estimatedOneRepMax(100, 5) },
+    ]);
+    expect(totalStrength(perExercise)).toBeCloseTo(estimatedOneRepMax(100, 5));
+  });
+});
+
+describe("setsPerMuscleGroup", () => {
+  it("counts sets within the window and zero-fills every muscle group", () => {
+    const bench = makeExercise({ id: "bench", muscle_group: "chest" });
+    const squat = makeExercise({ id: "squat", muscle_group: "legs" });
+    const recentDate = todayISOForTest();
+    const sets = [
+      makeSet({ exercise_id: "bench", session_date: recentDate }),
+      makeSet({ exercise_id: "squat", session_date: recentDate, set_number: 2 }),
+      makeSet({ exercise_id: "bench", session_date: "2000-01-01" }), // way outside the window
+    ];
+    const result = setsPerMuscleGroup([bench, squat], sets, 8);
+    const chest = result.find((r) => r.muscleGroup === "chest");
+    const legs = result.find((r) => r.muscleGroup === "legs");
+    const back = result.find((r) => r.muscleGroup === "back");
+    expect(chest?.setsCount).toBe(1);
+    expect(legs?.setsCount).toBe(1);
+    expect(back?.setsCount).toBe(0);
+    expect(result).toHaveLength(7);
+  });
+});
+
+describe("plateauExercises", () => {
+  it("flags an exercise whose last sessions never improve", () => {
+    const bench = makeExercise({ id: "bench", tracks_load: true });
+    const sets = [
+      makeSet({ exercise_id: "bench", session_date: "2026-01-01", weight_kg: 100, reps: 5 }),
+      makeSet({ exercise_id: "bench", session_date: "2026-01-08", weight_kg: 100, reps: 5 }),
+      makeSet({ exercise_id: "bench", session_date: "2026-01-15", weight_kg: 95, reps: 5 }),
+    ];
+    expect(plateauExercises([bench], sets, 3)).toEqual([
+      { exerciseId: "bench", exerciseName: "Bench Press" },
+    ]);
+  });
+
+  it("does not flag an exercise that's still improving", () => {
+    const bench = makeExercise({ id: "bench", tracks_load: true });
+    const sets = [
+      makeSet({ exercise_id: "bench", session_date: "2026-01-01", weight_kg: 90, reps: 5 }),
+      makeSet({ exercise_id: "bench", session_date: "2026-01-08", weight_kg: 95, reps: 5 }),
+      makeSet({ exercise_id: "bench", session_date: "2026-01-15", weight_kg: 100, reps: 5 }),
+    ];
+    expect(plateauExercises([bench], sets, 3)).toEqual([]);
+  });
+
+  it("skips exercises without enough sessions to judge", () => {
+    const bench = makeExercise({ id: "bench", tracks_load: true });
+    const sets = [makeSet({ exercise_id: "bench", session_date: "2026-01-01" })];
+    expect(plateauExercises([bench], sets, 3)).toEqual([]);
+  });
+});
+
+describe("averageSessionsPerWeek", () => {
+  it("averages sessions only across weeks that had at least one", () => {
+    // Mon 2026-01-05 + Wed 2026-01-07 = 2 sessions in week of Jan 5.
+    // Mon 2026-01-12 = 1 session in the next week.
+    const sets = [
+      makeSet({ session_date: "2026-01-05" }),
+      makeSet({ session_date: "2026-01-07" }),
+      makeSet({ session_date: "2026-01-12" }),
+    ];
+    expect(averageSessionsPerWeek(sets)).toBeCloseTo(3 / 2);
+  });
+
+  it("is zero with no sets", () => {
+    expect(averageSessionsPerWeek([])).toBe(0);
+  });
+});
+
+function todayISOForTest() {
+  return new Date().toISOString().slice(0, 10);
+}
