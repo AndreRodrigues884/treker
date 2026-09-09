@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { exerciseSchema, setLogSchema } from "@/lib/validation/gym";
+import type { PendingSet } from "@/components/gym/session-context";
+import type { MuscleGroup } from "@/lib/constants/gym";
+import type { TablesInsert } from "@/lib/supabase/database.types";
 
 export type GymFormResult =
   | { status: "error"; message: string }
@@ -102,24 +105,52 @@ export async function deleteExerciseAction(formData: FormData) {
   revalidatePath(`/dashboard/gym/${muscleGroup}`);
 }
 
-export async function saveSetAction(
+/**
+ * Flushes every set staged in the client-side WorkoutSessionProvider for
+ * this muscle group in one upsert — nothing before this point ever
+ * touched the database, so a single "Save session" click is what makes
+ * the whole visit's sets real (and countable in the progress charts).
+ */
+export async function saveSessionAction(
+  muscleGroup: MuscleGroup,
+  pending: Record<string, PendingSet>,
+  // useActionState requires this (prevState, formData) shape, but this
+  // action's real input is bound in (muscleGroup, pending) — neither is
+  // used here.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _prevState: GymFormResult,
-  formData: FormData,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _formData: FormData,
 ): Promise<GymFormResult> {
-  const weightRaw = formData.get("weightKg");
-  const weightKg =
-    weightRaw !== null && weightRaw !== "" ? Number(weightRaw) : null;
+  const entries = Object.entries(pending);
+  if (entries.length === 0) {
+    return { status: "error", message: "Log at least one set first." };
+  }
 
-  const parsed = setLogSchema.safeParse({
-    exerciseId: formData.get("exerciseId"),
-    setNumber: formData.get("setNumber"),
-    weightKg,
-    reps: formData.get("reps"),
-    executionType: formData.get("executionType"),
-    difficulty: formData.get("difficulty"),
-  });
-  if (!parsed.success) {
-    return { status: "error", message: parsed.error.issues[0].message };
+  const sessionDate = new Date().toISOString().slice(0, 10);
+  const rows: Omit<TablesInsert<"exercise_sets">, "user_id">[] = [];
+  for (const [key, value] of entries) {
+    const [exerciseId, setNumberRaw] = key.split(":");
+    const parsed = setLogSchema.safeParse({
+      exerciseId,
+      setNumber: setNumberRaw,
+      weightKg: value.weightKg,
+      reps: value.reps,
+      executionType: value.executionType,
+      difficulty: value.difficulty,
+    });
+    if (!parsed.success) {
+      return { status: "error", message: parsed.error.issues[0].message };
+    }
+    rows.push({
+      exercise_id: parsed.data.exerciseId,
+      session_date: sessionDate,
+      set_number: parsed.data.setNumber,
+      weight_kg: parsed.data.weightKg,
+      reps: parsed.data.reps,
+      execution_type: parsed.data.executionType,
+      difficulty: parsed.data.difficulty,
+    });
   }
 
   const supabase = await createClient();
@@ -128,24 +159,14 @@ export async function saveSetAction(
   } = await supabase.auth.getUser();
   if (!user) return { status: "error", message: "Not authenticated." };
 
-  const { error } = await supabase.from("exercise_sets").upsert(
-    {
-      user_id: user.id,
-      exercise_id: parsed.data.exerciseId,
-      session_date: new Date().toISOString().slice(0, 10),
-      set_number: parsed.data.setNumber,
-      weight_kg: parsed.data.weightKg,
-      reps: parsed.data.reps,
-      execution_type: parsed.data.executionType,
-      difficulty: parsed.data.difficulty,
-    },
-    { onConflict: "exercise_id,session_date,set_number" },
-  );
+  const { error } = await supabase
+    .from("exercise_sets")
+    .upsert(
+      rows.map((row) => ({ ...row, user_id: user.id })),
+      { onConflict: "exercise_id,session_date,set_number" },
+    );
   if (error) return { status: "error", message: error.message };
 
-  const muscleGroup = formData.get("muscleGroup");
-  if (typeof muscleGroup === "string") {
-    revalidatePath(`/dashboard/gym/${muscleGroup}`);
-  }
+  revalidatePath(`/dashboard/gym/${muscleGroup}`);
   return { status: "success" };
 }

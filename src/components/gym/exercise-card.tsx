@@ -1,14 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import {
-  lastSessionBefore,
-  progressHistory,
-  setsForDate,
-  todayISO,
-} from "@/lib/gym/derive";
+import { useState } from "react";
+import { lastSessionBefore, setsForDate, todayISO } from "@/lib/gym/derive";
 import type { Exercise, ExerciseSet } from "@/lib/gym/queries";
-import { saveSetAction, deleteExerciseAction } from "@/lib/actions/gym";
+import { deleteExerciseAction, updateExerciseAction } from "@/lib/actions/gym";
 import { EXECUTION_TYPES, DIFFICULTIES } from "@/lib/constants/gym";
 import type {
   ExecutionType,
@@ -16,9 +11,8 @@ import type {
   MuscleGroup,
 } from "@/lib/constants/gym";
 import { ExerciseForm } from "@/components/gym/exercise-form";
-import { ProgressChart } from "@/components/gym/progress-chart";
-import { PencilIcon, TrashIcon, SpinnerIcon } from "@/components/ui/icons";
-import { updateExerciseAction } from "@/lib/actions/gym";
+import { useWorkoutSession } from "@/components/gym/session-context";
+import { PencilIcon, TrashIcon } from "@/components/ui/icons";
 
 export function ExerciseCard({
   exercise,
@@ -29,14 +23,17 @@ export function ExerciseCard({
   sets: ExerciseSet[];
   muscleGroup: MuscleGroup;
 }) {
+  const { getPendingSet, setPendingSet } = useWorkoutSession();
+
   const [editing, setEditing] = useState(false);
-  const [activeSet, setActiveSet] = useState(1);
-  const [syncedSet, setSyncedSet] = useState(1);
+  // Collapsed by default — opening a set number is what reveals the rest.
+  const [activeSet, setActiveSet] = useState<number | null>(null);
+  const [syncedSet, setSyncedSet] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const today = todayISO();
   const todaySets = setsForDate(sets, today);
   const lastSession = lastSessionBefore(sets, today);
-  const progress = progressHistory(sets, exercise.tracks_load);
 
   function findTodaySet(setNumber: number) {
     return todaySets.find((s) => s.set_number === setNumber);
@@ -45,6 +42,8 @@ export function ExerciseCard({
     return lastSession?.find((s) => s.set_number === setNumber);
   }
   function weightFor(setNumber: number) {
+    const p = getPendingSet(exercise.id, setNumber);
+    if (p) return p.weightKg != null ? String(p.weightKg) : "";
     const t = findTodaySet(setNumber);
     if (t?.weight_kg != null) return String(t.weight_kg);
     const l = findLastSet(setNumber);
@@ -52,40 +51,75 @@ export function ExerciseCard({
     return "";
   }
   function repsFor(setNumber: number) {
+    const p = getPendingSet(exercise.id, setNumber);
+    if (p) return String(p.reps);
     return String(findTodaySet(setNumber)?.reps ?? exercise.reps);
   }
   function executionTypeFor(setNumber: number): ExecutionType {
-    return findTodaySet(setNumber)?.execution_type ?? "straight";
+    return (
+      getPendingSet(exercise.id, setNumber)?.executionType ??
+      findTodaySet(setNumber)?.execution_type ??
+      "straight"
+    );
   }
   function difficultyFor(setNumber: number): SetDifficulty {
-    return findTodaySet(setNumber)?.difficulty ?? "medium";
+    return (
+      getPendingSet(exercise.id, setNumber)?.difficulty ??
+      findTodaySet(setNumber)?.difficulty ??
+      "medium"
+    );
   }
 
-  const [weight, setWeight] = useState(() => weightFor(activeSet));
-  const [reps, setReps] = useState(() => repsFor(activeSet));
-  const [executionType, setExecutionType] = useState<ExecutionType>(() =>
-    executionTypeFor(activeSet),
-  );
-  const [difficulty, setDifficulty] = useState<SetDifficulty>(() =>
-    difficultyFor(activeSet),
-  );
+  const [weight, setWeight] = useState("");
+  const [reps, setReps] = useState(String(exercise.reps));
+  const [executionType, setExecutionType] = useState<ExecutionType>("straight");
+  const [difficulty, setDifficulty] = useState<SetDifficulty>("medium");
 
-  // Switching sets should reset the inputs to that set's own saved/last
-  // values, not carry over whatever was typed for the previous set. This
-  // adjusts state during render (React's recommended alternative to an
-  // effect for "reset derived state when a key changes") instead of an
-  // effect that would commit a stale render first, then correct it.
+  // Adjust state during render when the selected set changes — React's
+  // recommended alternative to an effect for this ("reset derived state
+  // when a key changes") avoids committing a stale render first.
   if (activeSet !== syncedSet) {
     setSyncedSet(activeSet);
-    setWeight(weightFor(activeSet));
-    setReps(repsFor(activeSet));
-    setExecutionType(executionTypeFor(activeSet));
-    setDifficulty(difficultyFor(activeSet));
+    if (activeSet !== null) {
+      setWeight(weightFor(activeSet));
+      setReps(repsFor(activeSet));
+      setExecutionType(executionTypeFor(activeSet));
+      setDifficulty(difficultyFor(activeSet));
+    }
+    setError(null);
   }
 
-  const lastSetForActive = findLastSet(activeSet);
+  const lastSetForActive = activeSet !== null ? findLastSet(activeSet) : undefined;
 
-  const [state, formAction, pending] = useActionState(saveSetAction, null);
+  function handleToggleSet(n: number) {
+    setActiveSet(activeSet === n ? null : n);
+  }
+
+  function handleConfirm() {
+    if (activeSet === null) return;
+    const parsedReps = Number(reps);
+    if (!Number.isInteger(parsedReps) || parsedReps < 0) {
+      setError("Enter a valid number of reps.");
+      return;
+    }
+    let parsedWeight: number | null = null;
+    if (exercise.tracks_load) {
+      if (weight.trim() !== "") {
+        parsedWeight = Number(weight);
+        if (Number.isNaN(parsedWeight) || parsedWeight < 0) {
+          setError("Enter a valid weight.");
+          return;
+        }
+      }
+    }
+    setError(null);
+    setPendingSet(exercise.id, activeSet, {
+      weightKg: parsedWeight,
+      reps: parsedReps,
+      executionType,
+      difficulty,
+    });
+  }
 
   if (editing) {
     return (
@@ -142,19 +176,22 @@ export function ExerciseCard({
 
       <div className="flex gap-2">
         {Array.from({ length: exercise.sets }, (_, i) => i + 1).map((n) => {
-          const done = todaySets.some((s) => s.set_number === n);
+          const savedInDb = todaySets.some((s) => s.set_number === n);
+          const staged = !!getPendingSet(exercise.id, n);
           const active = n === activeSet;
           return (
             <button
               key={n}
               type="button"
-              onClick={() => setActiveSet(n)}
+              onClick={() => handleToggleSet(n)}
               className={`flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition ${
                 active
                   ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
-                  : done
+                  : savedInDb
                     ? "border-emerald-800 bg-emerald-500/10 text-emerald-400"
-                    : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                    : staged
+                      ? "border-amber-700 bg-amber-500/10 text-amber-400"
+                      : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
               }`}
             >
               {n}
@@ -163,112 +200,103 @@ export function ExerciseCard({
         })}
       </div>
 
-      <div className="h-px bg-zinc-800" />
+      {activeSet !== null && (
+        <div className="space-y-4">
+          <div className="h-px bg-zinc-800" />
 
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-zinc-400">Set {activeSet}</span>
-        {lastSetForActive && (
-          <span className="flex items-center gap-2 text-indigo-300">
-            Last time:{" "}
-            {exercise.tracks_load && lastSetForActive.weight_kg != null
-              ? `${lastSetForActive.weight_kg}kg · `
-              : ""}
-            {lastSetForActive.reps} reps
-            <DifficultyPill value={lastSetForActive.difficulty} />
-          </span>
-        )}
-      </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-zinc-400">Set {activeSet}</span>
+            {lastSetForActive && (
+              <span className="flex items-center gap-2 text-indigo-300">
+                Last time:{" "}
+                {exercise.tracks_load && lastSetForActive.weight_kg != null
+                  ? `${lastSetForActive.weight_kg}kg · `
+                  : ""}
+                {lastSetForActive.reps} reps
+                <DifficultyPill value={lastSetForActive.difficulty} />
+              </span>
+            )}
+          </div>
 
-      <form action={formAction} className="space-y-4">
-        <input type="hidden" name="exerciseId" value={exercise.id} />
-        <input type="hidden" name="setNumber" value={activeSet} />
-        <input type="hidden" name="muscleGroup" value={muscleGroup} />
-        <input type="hidden" name="executionType" value={executionType} />
-        <input type="hidden" name="difficulty" value={difficulty} />
-
-        <div
-          className={`grid gap-3 ${exercise.tracks_load ? "grid-cols-2" : "grid-cols-1"}`}
-        >
-          {exercise.tracks_load && (
+          <div
+            className={`grid gap-3 ${exercise.tracks_load ? "grid-cols-2" : "grid-cols-1"}`}
+          >
+            {exercise.tracks_load && (
+              <label className="space-y-1 text-sm text-zinc-400">
+                Weight (kg)
+                <input
+                  type="number"
+                  step="0.5"
+                  min={0}
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+                />
+              </label>
+            )}
             <label className="space-y-1 text-sm text-zinc-400">
-              Weight (kg)
+              Reps done
               <input
-                name="weightKg"
                 type="number"
-                step="0.5"
                 min={0}
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                value={reps}
+                onChange={(e) => setReps(e.target.value)}
                 className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
               />
             </label>
-          )}
-          <label className="space-y-1 text-sm text-zinc-400">
-            Reps done
-            <input
-              name="reps"
-              type="number"
-              min={0}
-              value={reps}
-              onChange={(e) => setReps(e.target.value)}
-              className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
-            />
-          </label>
-        </div>
+          </div>
 
-        <div className="space-y-2">
-          <p className="text-sm text-zinc-400">Execution type</p>
-          <div className="grid grid-cols-3 gap-2">
-            {EXECUTION_TYPES.map((et) => (
+          <div className="space-y-2">
+            <p className="text-sm text-zinc-400">Execution type</p>
+            <div className="grid grid-cols-3 gap-2">
+              {EXECUTION_TYPES.map((et) => (
+                <button
+                  key={et.value}
+                  type="button"
+                  onClick={() => setExecutionType(et.value)}
+                  className={`rounded-lg border px-2 py-2 text-sm transition ${
+                    executionType === et.value
+                      ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
+                      : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                  }`}
+                >
+                  {et.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {DIFFICULTIES.map((d) => (
               <button
-                key={et.value}
+                key={d.value}
                 type="button"
-                onClick={() => setExecutionType(et.value)}
+                onClick={() => setDifficulty(d.value)}
                 className={`rounded-lg border px-2 py-2 text-sm transition ${
-                  executionType === et.value
-                    ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
+                  difficulty === d.value
+                    ? `border-transparent ${d.tint}`
                     : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
                 }`}
               >
-                {et.label}
+                {d.label}
               </button>
             ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-4 gap-2">
-          {DIFFICULTIES.map((d) => (
             <button
-              key={d.value}
               type="button"
-              onClick={() => setDifficulty(d.value)}
-              className={`rounded-lg border px-2 py-2 text-sm transition ${
-                difficulty === d.value
-                  ? `border-transparent ${d.tint}`
-                  : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
-              }`}
+              onClick={handleConfirm}
+              className="flex items-center justify-center rounded-lg bg-cyan-500 text-sm font-semibold text-zinc-950 transition hover:brightness-110"
             >
-              {d.label}
+              OK
             </button>
-          ))}
-          <button
-            type="submit"
-            disabled={pending}
-            className="flex items-center justify-center gap-1 rounded-lg bg-cyan-500 text-sm font-semibold text-zinc-950 transition hover:brightness-110 disabled:opacity-50"
-          >
-            {pending && <SpinnerIcon className="h-4 w-4" />}
-            {pending ? "…" : "OK"}
-          </button>
+          </div>
+
+          {error && (
+            <p role="alert" className="text-sm text-red-400">
+              {error}
+            </p>
+          )}
         </div>
-
-        {state?.status === "error" && (
-          <p role="alert" className="text-sm text-red-400">
-            {state.message}
-          </p>
-        )}
-      </form>
-
-      <ProgressChart points={progress} unit={exercise.tracks_load ? "kg" : ""} />
+      )}
     </div>
   );
 }
