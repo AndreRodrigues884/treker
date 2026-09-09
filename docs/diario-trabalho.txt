@@ -176,6 +176,25 @@ DIÁRIO DE TRABALHO — projeto treker
      série faz upsert (não duplica), e RLS a bloquear outro user de ler
      o exercício.
 
+15. Ajustes ao módulo Gym (feedback direto sobre os prints de referência)
+   - Cartão de exercício passa a começar colapsado — só mostra nome,
+     progresso (X/Y), editar/apagar e a fila de números de série; clicar
+     num número é que revela "última vez", inputs, tipo de execução,
+     dificuldade e o botão OK.
+   - Mudança de arquitetura: o botão "OK" já não grava na base de dados.
+     Agora só guarda a série num contexto React local (WorkoutSession),
+     partilhado por todos os exercícios da página. Nada fica persistido
+     — e nada conta para os gráficos — até clicar em "Guardar sessão",
+     que grava tudo o que foi preenchido nessa visita numa única chamada
+     (upsert em lote, testado com séries de exercícios diferentes na
+     mesma chamada).
+   - Ordem da página trocada: os gráficos de progresso aparecem agora
+     ANTES da lista de exercícios (antes era ao contrário).
+   - `/dashboard/gym` passa a mostrar primeiro "Your workouts" (grupos
+     musculares já com exercícios), com um botão "+ Add muscle group"
+     que revela os grupos ainda não usados — só mostra a grelha completa
+     quando não há nenhum treino criado ainda.
+
 PENDENTE (para os próximos dias):
    - Criar conta/DB no Upstash para produção (por agora o .env.local e a
      Vercel usam valores de placeholder/local — nada usa Redis a sério
