@@ -1,0 +1,16 @@
+-- Initial schema placeholder.
+-- Add tables here; remember to enable RLS and write policies for every table
+-- that is reachable through the Supabase API.
+--
+-- Example:
+-- create table public.example (
+--   id uuid primary key default gen_random_uuid(),
+--   user_id uuid not null references auth.users(id) on delete cascade,
+--   created_at timestamptz not null default now()
+-- );
+--
+-- alter table public.example enable row level security;
+--
+-- create policy "Users can read their own rows"
+--   on public.example for select
+--   using (auth.uid() = user_id);

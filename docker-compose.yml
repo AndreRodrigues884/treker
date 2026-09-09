@@ -1,0 +1,31 @@
+# Local dev only. Nothing here runs in production — Vercel talks to hosted
+# Supabase and Upstash directly.
+#
+# - Supabase (Postgres/Auth/Storage) is run separately via the Supabase CLI,
+#   which manages its own Docker containers: `npm run db:start`.
+# - This file just gives you a local Redis plus a REST proxy
+#   (serverless-redis-http) that speaks the same wire protocol as Upstash's
+#   REST API, so @upstash/redis works unmodified against localhost.
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  redis-http:
+    image: hiett/serverless-redis-http:latest
+    restart: unless-stopped
+    depends_on:
+      - redis
+    ports:
+      - "8079:80"
+    environment:
+      SRH_MODE: env
+      SRH_TOKEN: local_dev_token
+      SRH_CONNECTION_STRING: redis://redis:6379
+
+volumes:
+  redis-data:

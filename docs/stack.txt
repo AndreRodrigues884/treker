@@ -1,0 +1,8 @@
+Stack (fase Web):
+
+Next.js (App Router) + Vercel
+Supabase (Postgres + Auth + RLS)
+Upstash Redis (cache serverless)
+Docker (só dev local — Supabase/Redis locais)
+Tailwind CSS, TanStack Query, Zod
+Vitest + React Testing Library
