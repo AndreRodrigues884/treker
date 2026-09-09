@@ -6,7 +6,7 @@ import Link from "next/link";
  */
 export function LandingHero() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-10 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950 px-6 py-24 text-center text-zinc-100">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-10 bg-linear-to-br from-slate-950 via-indigo-950 to-slate-950 px-6 py-24 text-center text-zinc-100">
       <div className="space-y-5">
         <p className="text-sm font-medium uppercase tracking-widest text-indigo-400">
           Multi-modality training tracker
@@ -24,7 +24,7 @@ export function LandingHero() {
       <div className="flex flex-col gap-3 sm:flex-row">
         <Link
           href="/signup"
-          className="rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:brightness-110"
+          className="rounded-full bg-linear-to-r from-indigo-500 to-violet-500 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:brightness-110"
         >
           Sign up
         </Link>

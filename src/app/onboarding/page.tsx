@@ -10,7 +10,7 @@ export default async function OnboardingPage() {
   if (profile?.onboarding_completed) redirect("/dashboard");
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950 px-6 py-16 text-zinc-100">
+    <main className="min-h-screen bg-linear-to-br from-slate-950 via-indigo-950 to-slate-950 px-6 py-16 text-zinc-100">
       <div className="mx-auto max-w-2xl space-y-10">
         <div className="space-y-2 text-center">
           <h1 className="text-3xl font-bold">Set up your training</h1>

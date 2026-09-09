@@ -103,7 +103,7 @@ export function OnboardingForm({
       <button
         type="submit"
         disabled={pending || modalities.length === 0 || goals.length === 0}
-        className="w-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-8 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-40"
+        className="w-full rounded-full bg-linear-to-r from-indigo-500 to-violet-500 px-8 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-40"
       >
         {pending ? "Saving…" : submitLabel}
       </button>
