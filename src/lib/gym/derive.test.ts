@@ -8,6 +8,8 @@ import {
   lastSessionDate,
   plateauExercises,
   progressHistory,
+  routineProgressHistory,
+  routineUnit,
   sessionsThisWeek,
   setsForDate,
   setsPerMuscleGroup,
@@ -37,6 +39,7 @@ function makeExercise(overrides: Partial<Exercise>): Exercise {
   return {
     id: "exercise",
     user_id: "user",
+    routine_id: "routine",
     muscle_group: "chest",
     name: "Bench Press",
     sets: 3,
@@ -237,6 +240,41 @@ describe("setsThisWeek / sessionsThisWeek", () => {
     const sets = [makeSet({ session_date: "2000-01-01" })];
     expect(setsThisWeek(sets)).toBe(0);
     expect(sessionsThisWeek(sets)).toBe(0);
+  });
+});
+
+describe("routineUnit", () => {
+  it("is kg when every exercise tracks load", () => {
+    expect(routineUnit([makeExercise({ tracks_load: true })])).toBe("kg");
+  });
+
+  it("is reps when none track load", () => {
+    expect(routineUnit([makeExercise({ tracks_load: false })])).toBe("reps");
+  });
+
+  it("is unitless when mixed", () => {
+    expect(
+      routineUnit([
+        makeExercise({ id: "a", tracks_load: true }),
+        makeExercise({ id: "b", tracks_load: false }),
+      ]),
+    ).toBe("");
+  });
+});
+
+describe("routineProgressHistory", () => {
+  it("combines every exercise in the routine per session, each by its own tracks_load", () => {
+    const squat = makeExercise({ id: "squat", tracks_load: true });
+    const lunges = makeExercise({ id: "lunges", tracks_load: false });
+    const sets = [
+      makeSet({ exercise_id: "squat", session_date: "2026-01-01", weight_kg: 100, reps: 5 }),
+      makeSet({ exercise_id: "lunges", session_date: "2026-01-01", reps: 12 }),
+      makeSet({ exercise_id: "squat", session_date: "2026-01-08", weight_kg: 105, reps: 5 }),
+    ];
+    expect(routineProgressHistory([squat, lunges], sets)).toEqual([
+      { date: "2026-01-01", value: 100 * 5 + 12 },
+      { date: "2026-01-08", value: 105 * 5 },
+    ]);
   });
 });
 

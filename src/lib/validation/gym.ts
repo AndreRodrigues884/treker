@@ -3,6 +3,7 @@ import {
   MUSCLE_GROUPS,
   EXECUTION_TYPES,
   DIFFICULTIES,
+  NEW_ROUTINE,
   type MuscleGroup,
   type ExecutionType,
   type SetDifficulty,
@@ -21,13 +22,20 @@ const difficultyValues = DIFFICULTIES.map((d) => d.value) as [
   ...SetDifficulty[],
 ];
 
-export const exerciseSchema = z.object({
-  muscleGroup: z.enum(muscleGroupValues),
-  name: z.string().trim().min(1, "Name is required").max(80),
-  sets: z.coerce.number().int().min(1, "At least 1 set").max(20),
-  reps: z.coerce.number().int().min(1, "At least 1 rep").max(100),
-  tracksLoad: z.coerce.boolean(),
-});
+export const exerciseSchema = z
+  .object({
+    muscleGroup: z.enum(muscleGroupValues),
+    routineId: z.string().min(1, "Choose a workout"),
+    newRoutineName: z.string().trim().max(60).optional(),
+    name: z.string().trim().min(1, "Name is required").max(80),
+    sets: z.coerce.number().int().min(1, "At least 1 set").max(20),
+    reps: z.coerce.number().int().min(1, "At least 1 rep").max(100),
+    tracksLoad: z.coerce.boolean(),
+  })
+  .refine(
+    (data) => data.routineId !== NEW_ROUTINE || !!data.newRoutineName?.length,
+    { message: "Enter a name for the new workout", path: ["newRoutineName"] },
+  );
 export type ExerciseInput = z.infer<typeof exerciseSchema>;
 
 export const setLogSchema = z.object({

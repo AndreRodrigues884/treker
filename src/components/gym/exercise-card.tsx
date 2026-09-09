@@ -128,6 +128,7 @@ export function ExerciseCard({
         action={updateExerciseAction.bind(null, exercise.id)}
         muscleGroup={muscleGroup}
         defaultValues={{
+          routineId: exercise.routine_id,
           name: exercise.name,
           sets: exercise.sets,
           reps: exercise.reps,

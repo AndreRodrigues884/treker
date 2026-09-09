@@ -91,6 +91,7 @@ export type Database = {
           muscle_group: Database["public"]["Enums"]["muscle_group"]
           name: string
           reps: number
+          routine_id: string
           sets: number
           tracks_load: boolean
           updated_at: string
@@ -102,6 +103,7 @@ export type Database = {
           muscle_group: Database["public"]["Enums"]["muscle_group"]
           name: string
           reps: number
+          routine_id: string
           sets: number
           tracks_load?: boolean
           updated_at?: string
@@ -113,12 +115,21 @@ export type Database = {
           muscle_group?: Database["public"]["Enums"]["muscle_group"]
           name?: string
           reps?: number
+          routine_id?: string
           sets?: number
           tracks_load?: boolean
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "exercises_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -144,6 +155,33 @@ export type Database = {
           modalities?: Database["public"]["Enums"]["modality"][]
           onboarding_completed?: boolean
           updated_at?: string
+        }
+        Relationships: []
+      }
+      routines: {
+        Row: {
+          created_at: string
+          id: string
+          muscle_group: Database["public"]["Enums"]["muscle_group"]
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          muscle_group: Database["public"]["Enums"]["muscle_group"]
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          muscle_group?: Database["public"]["Enums"]["muscle_group"]
+          name?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

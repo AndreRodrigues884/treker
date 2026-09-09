@@ -27,6 +27,10 @@ export const DIFFICULTIES = [
   { value: "hard", label: "Hard", tint: "bg-red-500/15 text-red-300" },
 ] as const;
 
+/** Sentinel value for "create a new routine" in the exercise form's
+ * routine picker — never a real routine id, so it can't collide. */
+export const NEW_ROUTINE = "__new__";
+
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number]["value"];
 export type MuscleGroupOption = (typeof MUSCLE_GROUPS)[number];
 export type ExecutionType = (typeof EXECUTION_TYPES)[number]["value"];

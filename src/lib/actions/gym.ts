@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { exerciseSchema, setLogSchema } from "@/lib/validation/gym";
 import type { PendingSet } from "@/components/gym/session-context";
-import type { MuscleGroup } from "@/lib/constants/gym";
+import { NEW_ROUTINE, type MuscleGroup } from "@/lib/constants/gym";
 import type { TablesInsert } from "@/lib/supabase/database.types";
 
 export type GymFormResult =
@@ -18,6 +18,8 @@ export async function createExerciseAction(
 ): Promise<GymFormResult> {
   const parsed = exerciseSchema.safeParse({
     muscleGroup: formData.get("muscleGroup"),
+    routineId: formData.get("routineId"),
+    newRoutineName: formData.get("newRoutineName") ?? undefined,
     name: formData.get("name"),
     sets: formData.get("sets"),
     reps: formData.get("reps"),
@@ -33,9 +35,30 @@ export async function createExerciseAction(
   } = await supabase.auth.getUser();
   if (!user) return { status: "error", message: "Not authenticated." };
 
+  let routineId = parsed.data.routineId;
+  if (routineId === NEW_ROUTINE) {
+    const { data: routine, error: routineError } = await supabase
+      .from("routines")
+      .insert({
+        user_id: user.id,
+        muscle_group: parsed.data.muscleGroup,
+        name: parsed.data.newRoutineName!.trim(),
+      })
+      .select()
+      .single();
+    if (routineError || !routine) {
+      return {
+        status: "error",
+        message: routineError?.message ?? "Could not create the workout.",
+      };
+    }
+    routineId = routine.id;
+  }
+
   const { error } = await supabase.from("exercises").insert({
     user_id: user.id,
     muscle_group: parsed.data.muscleGroup,
+    routine_id: routineId,
     name: parsed.data.name,
     sets: parsed.data.sets,
     reps: parsed.data.reps,
@@ -54,6 +77,7 @@ export async function updateExerciseAction(
 ): Promise<GymFormResult> {
   const parsed = exerciseSchema.safeParse({
     muscleGroup: formData.get("muscleGroup"),
+    routineId: formData.get("routineId"),
     name: formData.get("name"),
     sets: formData.get("sets"),
     reps: formData.get("reps"),
@@ -69,6 +93,8 @@ export async function updateExerciseAction(
   } = await supabase.auth.getUser();
   if (!user) return { status: "error", message: "Not authenticated." };
 
+  // Editing never reassigns the routine — the form only sends the
+  // exercise's existing routineId as a fixed hidden field.
   const { error } = await supabase
     .from("exercises")
     .update({

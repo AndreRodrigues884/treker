@@ -5,8 +5,14 @@ import {
   getExercises,
   getExerciseSets,
   getMuscleGroupsWithExercises,
+  getRoutines,
 } from "@/lib/gym/queries";
-import { progressHistory, setsForDate, todayISO } from "@/lib/gym/derive";
+import {
+  routineProgressHistory,
+  routineUnit,
+  setsForDate,
+  todayISO,
+} from "@/lib/gym/derive";
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/constants/gym";
 import { MuscleGroupTabs } from "@/components/gym/muscle-group-tabs";
 import { AddExercisePanel } from "@/components/gym/add-exercise-panel";
@@ -19,6 +25,8 @@ import { SessionProgress } from "@/components/gym/session-progress";
 export function generateStaticParams() {
   return MUSCLE_GROUPS.map((m) => ({ muscleGroup: m.value }));
 }
+
+const UNIT_LABEL = { kg: "Volume", reps: "Reps", "": "Activity" } as const;
 
 export default async function MuscleGroupPage({
   params,
@@ -36,7 +44,8 @@ export default async function MuscleGroupPage({
   const profile = await getProfile(user.id);
   if (!profile?.modalities.includes("gym")) redirect("/dashboard");
 
-  const [exercises, available] = await Promise.all([
+  const [routines, exercises, available] = await Promise.all([
+    getRoutines(user.id, group),
     getExercises(user.id, group),
     getMuscleGroupsWithExercises(user.id),
   ]);
@@ -47,6 +56,13 @@ export default async function MuscleGroupPage({
       sets: await getExerciseSets(exercise.id),
     })),
   );
+
+  const byRoutine = new Map<string, typeof exercisesWithSets>();
+  for (const item of exercisesWithSets) {
+    const list = byRoutine.get(item.exercise.routine_id) ?? [];
+    list.push(item);
+    byRoutine.set(item.exercise.routine_id, list);
+  }
 
   const today = todayISO();
   const totalSets = exercises.reduce((sum, e) => sum + e.sets, 0);
@@ -76,43 +92,58 @@ export default async function MuscleGroupPage({
 
         <MuscleGroupTabs active={group} available={available} />
 
-        {exercisesWithSets.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-zinc-200">Progress</h2>
-            {exercisesWithSets.map(({ exercise, sets }) => (
-              <div
-                key={exercise.id}
-                className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4"
-              >
-                <p className="mb-2 text-sm font-semibold text-zinc-300">
-                  {exercise.tracks_load ? "Volume" : "Reps"} — {exercise.name}
-                </p>
-                <ProgressChart
-                  points={progressHistory(sets, exercise.tracks_load)}
-                  unit={exercise.tracks_load ? "kg" : ""}
-                />
-              </div>
-            ))}
-          </div>
+        <AddExercisePanel
+          muscleGroup={group}
+          routines={routines.map((r) => ({ id: r.id, name: r.name }))}
+        />
+
+        {routines.length === 0 && (
+          <p className="rounded-2xl border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">
+            No workouts yet for {entry.label}. Add your first exercise above
+            to start one.
+          </p>
         )}
 
-        <AddExercisePanel muscleGroup={group} />
+        {routines.map((routine) => {
+          const items = byRoutine.get(routine.id) ?? [];
+          const routineExercises = items.map((i) => i.exercise);
+          const routineSets = items.flatMap((i) => i.sets);
+          const unit = routineUnit(routineExercises);
 
-        <div className="space-y-4">
-          {exercisesWithSets.map(({ exercise, sets }) => (
-            <ExerciseCard
-              key={exercise.id}
-              exercise={exercise}
-              sets={sets}
-              muscleGroup={group}
-            />
-          ))}
-          {exercises.length === 0 && (
-            <p className="rounded-2xl border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">
-              No exercises yet for {entry.label}. Add your first one above.
-            </p>
-          )}
-        </div>
+          return (
+            <div key={routine.id} className="space-y-3">
+              <h2 className="text-lg font-semibold text-zinc-200">
+                {routine.name}
+              </h2>
+
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+                <p className="mb-2 text-sm font-semibold text-zinc-300">
+                  {UNIT_LABEL[unit]} per session
+                </p>
+                <ProgressChart
+                  points={routineProgressHistory(routineExercises, routineSets)}
+                  unit={unit === "kg" ? "kg" : ""}
+                />
+              </div>
+
+              <div className="space-y-4">
+                {items.map(({ exercise, sets }) => (
+                  <ExerciseCard
+                    key={exercise.id}
+                    exercise={exercise}
+                    sets={sets}
+                    muscleGroup={group}
+                  />
+                ))}
+                {items.length === 0 && (
+                  <p className="rounded-2xl border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">
+                    No exercises in this workout yet.
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </WorkoutSessionProvider>
   );

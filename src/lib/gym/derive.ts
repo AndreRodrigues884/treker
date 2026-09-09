@@ -40,6 +40,37 @@ export function progressHistory(
     .map(([date, value]) => ({ date, value }));
 }
 
+/** Which unit a routine's combined chart is in: "kg" if every exercise
+ * in it tracks load, "reps" if none do, or "" (a mixed, unitless count)
+ * when it has both kinds. */
+export function routineUnit(exercises: Exercise[]): "kg" | "reps" | "" {
+  if (exercises.length === 0) return "";
+  const allTrackLoad = exercises.every((e) => e.tracks_load);
+  if (allTrackLoad) return "kg";
+  const noneTrackLoad = exercises.every((e) => !e.tracks_load);
+  return noneTrackLoad ? "reps" : "";
+}
+
+/** Same idea as progressHistory, but combined across every exercise in a
+ * routine — each set contributes by its OWN exercise's tracks_load, not
+ * a single flag for everything, since a routine can mix load and
+ * bodyweight exercises. This is what a routine's one shared chart plots. */
+export function routineProgressHistory(
+  exercises: Exercise[],
+  sets: ExerciseSet[],
+): ProgressPoint[] {
+  const tracksLoadByExercise = new Map(exercises.map((e) => [e.id, e.tracks_load]));
+  const byDate = new Map<string, number>();
+  for (const s of sets) {
+    const tracksLoad = tracksLoadByExercise.get(s.exercise_id) ?? true;
+    const value = tracksLoad ? (s.weight_kg ?? 0) * s.reps : s.reps;
+    byDate.set(s.session_date, (byDate.get(s.session_date) ?? 0) + value);
+  }
+  return [...byDate.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([date, value]) => ({ date, value }));
+}
+
 // --- Statistics (across every exercise, not one muscle group) ---
 
 /** Epley formula: a rough estimate of the max you could lift once, from

@@ -5,6 +5,22 @@ import type { MuscleGroup } from "@/lib/constants/gym";
 
 export type Exercise = Tables<"exercises">;
 export type ExerciseSet = Tables<"exercise_sets">;
+export type Routine = Tables<"routines">;
+
+/** Named groups of exercises that share one progress chart — e.g. two
+ * different Leg days end up as two routines, each with its own chart. */
+export const getRoutines = cache(
+  async (userId: string, muscleGroup: MuscleGroup) => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("routines")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("muscle_group", muscleGroup)
+      .order("created_at", { ascending: true });
+    return data ?? [];
+  },
+);
 
 export const getExercises = cache(
   async (userId: string, muscleGroup: MuscleGroup) => {

@@ -6,7 +6,13 @@ import { createExerciseAction } from "@/lib/actions/gym";
 import { PlusIcon } from "@/components/ui/icons";
 import type { MuscleGroup } from "@/lib/constants/gym";
 
-export function AddExercisePanel({ muscleGroup }: { muscleGroup: MuscleGroup }) {
+export function AddExercisePanel({
+  muscleGroup,
+  routines,
+}: {
+  muscleGroup: MuscleGroup;
+  routines: { id: string; name: string }[];
+}) {
   const [open, setOpen] = useState(false);
 
   if (!open) {
@@ -26,6 +32,7 @@ export function AddExercisePanel({ muscleGroup }: { muscleGroup: MuscleGroup }) 
     <ExerciseForm
       action={createExerciseAction}
       muscleGroup={muscleGroup}
+      routines={routines}
       onSuccess={() => setOpen(false)}
       onCancel={() => setOpen(false)}
     />
