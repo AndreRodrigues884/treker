@@ -18,9 +18,9 @@ export function ExerciseForm({
 }: {
   action: (prevState: GymFormResult, formData: FormData) => Promise<GymFormResult>;
   muscleGroup: MuscleGroup;
-  /** Present => create mode, shows the workout picker. Absent => edit
-   * mode, the routine stays fixed (see defaultValues.routineId). */
-  routines?: { id: string; name: string }[];
+  /** Every routine for this muscle group — shown as the workout picker
+   * in both create and edit mode, so an exercise can move charts later. */
+  routines: { id: string; name: string }[];
   defaultValues?: {
     routineId: string;
     name: string;
@@ -34,7 +34,7 @@ export function ExerciseForm({
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [selectedRoutine, setSelectedRoutine] = useState(
-    routines?.[0]?.id ?? NEW_ROUTINE,
+    defaultValues?.routineId ?? routines[0]?.id ?? NEW_ROUTINE,
   );
 
   useEffect(() => {
@@ -49,42 +49,38 @@ export function ExerciseForm({
     >
       <input type="hidden" name="muscleGroup" value={muscleGroup} />
 
-      {routines ? (
-        <div className="space-y-1">
-          <label htmlFor="routineId" className="text-sm text-zinc-400">
-            Workout
-          </label>
-          <select
-            id="routineId"
-            name="routineId"
-            value={selectedRoutine}
-            onChange={(e) => setSelectedRoutine(e.target.value)}
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
-          >
-            {routines.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-            <option value={NEW_ROUTINE}>+ Create new workout</option>
-          </select>
-          {selectedRoutine === NEW_ROUTINE && (
-            <input
-              name="newRoutineName"
-              placeholder="e.g. Legs A"
-              defaultValue={`Workout ${routines.length + 1}`}
-              required
-              className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
-            />
-          )}
-          <p className="text-xs text-zinc-500">
-            Exercises in the same workout share one progress chart —
-            create a new one for a different day&apos;s routine.
-          </p>
-        </div>
-      ) : (
-        <input type="hidden" name="routineId" value={defaultValues?.routineId} />
-      )}
+      <div className="space-y-1">
+        <label htmlFor="routineId" className="text-sm text-zinc-400">
+          Workout
+        </label>
+        <select
+          id="routineId"
+          name="routineId"
+          value={selectedRoutine}
+          onChange={(e) => setSelectedRoutine(e.target.value)}
+          className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+        >
+          {routines.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+          <option value={NEW_ROUTINE}>+ Create new workout</option>
+        </select>
+        {selectedRoutine === NEW_ROUTINE && (
+          <input
+            name="newRoutineName"
+            placeholder="e.g. Legs A"
+            defaultValue={`Workout ${routines.length + 1}`}
+            required
+            className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+          />
+        )}
+        <p className="text-xs text-zinc-500">
+          Exercises in the same workout share one progress chart — create a
+          new one for a different day&apos;s routine.
+        </p>
+      </div>
 
       <div className="space-y-1">
         <label htmlFor="name" className="text-sm text-zinc-400">

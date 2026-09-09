@@ -12,6 +12,35 @@ export type GymFormResult =
   | { status: "success" }
   | null;
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+/** Shared by create and edit: resolves the form's routineId to a real
+ * routine id, creating a new routine first if "+ Create new workout"
+ * was picked. */
+async function resolveRoutineId(
+  supabase: SupabaseServerClient,
+  userId: string,
+  muscleGroup: MuscleGroup,
+  routineId: string,
+  newRoutineName: string | undefined,
+): Promise<{ routineId: string } | { error: string }> {
+  if (routineId !== NEW_ROUTINE) return { routineId };
+
+  const { data: routine, error } = await supabase
+    .from("routines")
+    .insert({
+      user_id: userId,
+      muscle_group: muscleGroup,
+      name: newRoutineName!.trim(),
+    })
+    .select()
+    .single();
+  if (error || !routine) {
+    return { error: error?.message ?? "Could not create the workout." };
+  }
+  return { routineId: routine.id };
+}
+
 export async function createExerciseAction(
   _prevState: GymFormResult,
   formData: FormData,
@@ -35,30 +64,19 @@ export async function createExerciseAction(
   } = await supabase.auth.getUser();
   if (!user) return { status: "error", message: "Not authenticated." };
 
-  let routineId = parsed.data.routineId;
-  if (routineId === NEW_ROUTINE) {
-    const { data: routine, error: routineError } = await supabase
-      .from("routines")
-      .insert({
-        user_id: user.id,
-        muscle_group: parsed.data.muscleGroup,
-        name: parsed.data.newRoutineName!.trim(),
-      })
-      .select()
-      .single();
-    if (routineError || !routine) {
-      return {
-        status: "error",
-        message: routineError?.message ?? "Could not create the workout.",
-      };
-    }
-    routineId = routine.id;
-  }
+  const resolved = await resolveRoutineId(
+    supabase,
+    user.id,
+    parsed.data.muscleGroup,
+    parsed.data.routineId,
+    parsed.data.newRoutineName,
+  );
+  if ("error" in resolved) return { status: "error", message: resolved.error };
 
   const { error } = await supabase.from("exercises").insert({
     user_id: user.id,
     muscle_group: parsed.data.muscleGroup,
-    routine_id: routineId,
+    routine_id: resolved.routineId,
     name: parsed.data.name,
     sets: parsed.data.sets,
     reps: parsed.data.reps,
@@ -78,6 +96,7 @@ export async function updateExerciseAction(
   const parsed = exerciseSchema.safeParse({
     muscleGroup: formData.get("muscleGroup"),
     routineId: formData.get("routineId"),
+    newRoutineName: formData.get("newRoutineName") ?? undefined,
     name: formData.get("name"),
     sets: formData.get("sets"),
     reps: formData.get("reps"),
@@ -93,11 +112,21 @@ export async function updateExerciseAction(
   } = await supabase.auth.getUser();
   if (!user) return { status: "error", message: "Not authenticated." };
 
-  // Editing never reassigns the routine — the form only sends the
-  // exercise's existing routineId as a fixed hidden field.
+  // Editing can move the exercise to a different (or brand new) workout
+  // now — users may reorganize mid-way through tracking.
+  const resolved = await resolveRoutineId(
+    supabase,
+    user.id,
+    parsed.data.muscleGroup,
+    parsed.data.routineId,
+    parsed.data.newRoutineName,
+  );
+  if ("error" in resolved) return { status: "error", message: resolved.error };
+
   const { error } = await supabase
     .from("exercises")
     .update({
+      routine_id: resolved.routineId,
       name: parsed.data.name,
       sets: parsed.data.sets,
       reps: parsed.data.reps,
@@ -109,6 +138,58 @@ export async function updateExerciseAction(
 
   revalidatePath(`/dashboard/gym/${parsed.data.muscleGroup}`);
   return { status: "success" };
+}
+
+/** Persists a new exercise order within one routine after a drag —
+ * called directly from the client (not a <form>), so no return-state
+ * plumbing is needed; the UI already reordered itself optimistically. */
+export async function reorderExercisesAction(
+  routineId: string,
+  muscleGroup: MuscleGroup,
+  orderedExerciseIds: string[],
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await Promise.all(
+    orderedExerciseIds.map((id, index) =>
+      supabase
+        .from("exercises")
+        .update({ position: index })
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .eq("routine_id", routineId),
+    ),
+  );
+
+  revalidatePath(`/dashboard/gym/${muscleGroup}`);
+}
+
+/** Also called directly from the client, from the inline rename field. */
+export async function renameRoutineAction(
+  routineId: string,
+  muscleGroup: MuscleGroup,
+  name: string,
+) {
+  const trimmed = name.trim();
+  if (!trimmed) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from("routines")
+    .update({ name: trimmed })
+    .eq("id", routineId)
+    .eq("user_id", user.id);
+
+  revalidatePath(`/dashboard/gym/${muscleGroup}`);
 }
 
 export async function deleteExerciseAction(formData: FormData) {

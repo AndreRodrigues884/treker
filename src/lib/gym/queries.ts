@@ -30,7 +30,7 @@ export const getExercises = cache(
       .select("*")
       .eq("user_id", userId)
       .eq("muscle_group", muscleGroup)
-      .order("created_at", { ascending: true });
+      .order("position", { ascending: true });
     return data ?? [];
   },
 );

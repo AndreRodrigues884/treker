@@ -40,6 +40,7 @@ function makeExercise(overrides: Partial<Exercise>): Exercise {
     id: "exercise",
     user_id: "user",
     routine_id: "routine",
+    position: 0,
     muscle_group: "chest",
     name: "Bench Press",
     sets: 3,

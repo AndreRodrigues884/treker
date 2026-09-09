@@ -90,6 +90,7 @@ export type Database = {
           id: string
           muscle_group: Database["public"]["Enums"]["muscle_group"]
           name: string
+          position: number
           reps: number
           routine_id: string
           sets: number
@@ -102,6 +103,7 @@ export type Database = {
           id?: string
           muscle_group: Database["public"]["Enums"]["muscle_group"]
           name: string
+          position?: number
           reps: number
           routine_id: string
           sets: number
@@ -114,6 +116,7 @@ export type Database = {
           id?: string
           muscle_group?: Database["public"]["Enums"]["muscle_group"]
           name?: string
+          position?: number
           reps?: number
           routine_id?: string
           sets?: number

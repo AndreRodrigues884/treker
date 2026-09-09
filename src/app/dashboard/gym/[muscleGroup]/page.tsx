@@ -16,8 +16,9 @@ import {
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/constants/gym";
 import { MuscleGroupTabs } from "@/components/gym/muscle-group-tabs";
 import { AddExercisePanel } from "@/components/gym/add-exercise-panel";
-import { ExerciseCard } from "@/components/gym/exercise-card";
+import { SortableExerciseList } from "@/components/gym/sortable-exercise-list";
 import { ProgressChart } from "@/components/gym/progress-chart";
+import { RoutineHeading } from "@/components/gym/routine-heading";
 import { WorkoutSessionProvider } from "@/components/gym/session-context";
 import { SaveSessionButton } from "@/components/gym/save-session-button";
 import { SessionProgress } from "@/components/gym/session-progress";
@@ -112,9 +113,11 @@ export default async function MuscleGroupPage({
 
           return (
             <div key={routine.id} className="space-y-3">
-              <h2 className="text-lg font-semibold text-zinc-200">
-                {routine.name}
-              </h2>
+              <RoutineHeading
+                routineId={routine.id}
+                muscleGroup={group}
+                name={routine.name}
+              />
 
               <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
                 <p className="mb-2 text-sm font-semibold text-zinc-300">
@@ -126,21 +129,12 @@ export default async function MuscleGroupPage({
                 />
               </div>
 
-              <div className="space-y-4">
-                {items.map(({ exercise, sets }) => (
-                  <ExerciseCard
-                    key={exercise.id}
-                    exercise={exercise}
-                    sets={sets}
-                    muscleGroup={group}
-                  />
-                ))}
-                {items.length === 0 && (
-                  <p className="rounded-2xl border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">
-                    No exercises in this workout yet.
-                  </p>
-                )}
-              </div>
+              <SortableExerciseList
+                routineId={routine.id}
+                muscleGroup={group}
+                items={items}
+                routines={routines.map((r) => ({ id: r.id, name: r.name }))}
+              />
             </div>
           );
         })}

@@ -125,6 +125,19 @@ export function PlusIcon(props: IconProps) {
   );
 }
 
+export function GripIcon(props: IconProps) {
+  return (
+    <svg {...base(props)} fill="currentColor" stroke="none">
+      <circle cx="9" cy="6" r="1.25" />
+      <circle cx="15" cy="6" r="1.25" />
+      <circle cx="9" cy="12" r="1.25" />
+      <circle cx="15" cy="12" r="1.25" />
+      <circle cx="9" cy="18" r="1.25" />
+      <circle cx="15" cy="18" r="1.25" />
+    </svg>
+  );
+}
+
 export function SpinnerIcon(props: IconProps) {
   return (
     <svg {...base(props)} className={`animate-spin ${props.className ?? ""}`}>

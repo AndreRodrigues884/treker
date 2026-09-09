@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import type { DraggableAttributes } from "@dnd-kit/core";
+import type { DraggableSyntheticListeners } from "@dnd-kit/core";
 import { lastSessionBefore, setsForDate, todayISO } from "@/lib/gym/derive";
 import type { Exercise, ExerciseSet } from "@/lib/gym/queries";
 import { deleteExerciseAction, updateExerciseAction } from "@/lib/actions/gym";
@@ -12,16 +14,25 @@ import type {
 } from "@/lib/constants/gym";
 import { ExerciseForm } from "@/components/gym/exercise-form";
 import { useWorkoutSession } from "@/components/gym/session-context";
-import { PencilIcon, TrashIcon } from "@/components/ui/icons";
+import { GripIcon, PencilIcon, TrashIcon } from "@/components/ui/icons";
 
 export function ExerciseCard({
   exercise,
   sets,
   muscleGroup,
+  routines,
+  dragHandle,
 }: {
   exercise: Exercise;
   sets: ExerciseSet[];
   muscleGroup: MuscleGroup;
+  routines: { id: string; name: string }[];
+  /** Attributes/listeners from dnd-kit's useSortable, spread onto the
+   * grip button — omitted where the card isn't inside a sortable list. */
+  dragHandle?: {
+    attributes: DraggableAttributes;
+    listeners: DraggableSyntheticListeners;
+  };
 }) {
   const { getPendingSet, setPendingSet } = useWorkoutSession();
 
@@ -127,6 +138,7 @@ export function ExerciseCard({
       <ExerciseForm
         action={updateExerciseAction.bind(null, exercise.id)}
         muscleGroup={muscleGroup}
+        routines={routines}
         defaultValues={{
           routineId: exercise.routine_id,
           name: exercise.name,
@@ -144,11 +156,24 @@ export function ExerciseCard({
   return (
     <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="font-bold text-zinc-100">{exercise.name}</h3>
-          <p className="text-sm text-zinc-500">
-            {exercise.sets} × {exercise.reps} reps
-          </p>
+        <div className="flex items-start gap-2">
+          {dragHandle && (
+            <button
+              type="button"
+              {...dragHandle.attributes}
+              {...dragHandle.listeners}
+              aria-label="Drag to reorder"
+              className="mt-0.5 touch-none text-zinc-600 hover:text-zinc-400"
+            >
+              <GripIcon className="h-4 w-4" />
+            </button>
+          )}
+          <div>
+            <h3 className="font-bold text-zinc-100">{exercise.name}</h3>
+            <p className="text-sm text-zinc-500">
+              {exercise.sets} × {exercise.reps} reps
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3 text-zinc-500">
           <span className="text-sm">
