@@ -21,3 +21,4 @@ export const TRAINING_GOALS = [
 
 export type Modality = (typeof MODALITIES)[number]["value"];
 export type TrainingGoal = (typeof TRAINING_GOALS)[number]["value"];
+export type ModalityOption = (typeof MODALITIES)[number];
