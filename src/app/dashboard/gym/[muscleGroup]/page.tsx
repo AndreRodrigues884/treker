@@ -7,12 +7,7 @@ import {
   getMuscleGroupsWithExercises,
   getRoutines,
 } from "@/lib/gym/queries";
-import {
-  routineProgressHistory,
-  routineUnit,
-  setsForDate,
-  todayISO,
-} from "@/lib/gym/derive";
+import { routineProgressHistory, routineUnit } from "@/lib/gym/derive";
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/constants/gym";
 import { MuscleGroupTabs } from "@/components/gym/muscle-group-tabs";
 import { AddExercisePanel } from "@/components/gym/add-exercise-panel";
@@ -22,6 +17,7 @@ import { RoutineHeading } from "@/components/gym/routine-heading";
 import { WorkoutSessionProvider } from "@/components/gym/session-context";
 import { SaveSessionButton } from "@/components/gym/save-session-button";
 import { SessionProgress } from "@/components/gym/session-progress";
+import { ArrowLeftIcon } from "@/components/ui/icons";
 
 export function generateStaticParams() {
   return MUSCLE_GROUPS.map((m) => ({ muscleGroup: m.value }));
@@ -65,28 +61,33 @@ export default async function MuscleGroupPage({
     byRoutine.set(item.exercise.routine_id, list);
   }
 
-  const today = todayISO();
   const totalSets = exercises.reduce((sum, e) => sum + e.sets, 0);
-  const todaySetKeys = exercisesWithSets.flatMap(({ exercise, sets }) =>
-    setsForDate(sets, today).map((s) => `${exercise.id}:${s.set_number}`),
-  );
 
   return (
     <WorkoutSessionProvider>
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-sm text-zinc-500">
-              <Link href="/dashboard" className="hover:text-zinc-300">
-                Dashboard
-              </Link>{" "}
-              /{" "}
-              <Link href="/dashboard/gym" className="hover:text-zinc-300">
-                Gym
-              </Link>
-            </p>
-            <h1 className="text-2xl font-bold">{entry.label}</h1>
-            <SessionProgress todaySetKeys={todaySetKeys} totalSets={totalSets} />
+          <div className="flex items-start gap-3">
+            <Link
+              href="/dashboard/gym"
+              aria-label="Back to muscle groups"
+              className="mt-1 shrink-0 rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-200"
+            >
+              <ArrowLeftIcon className="h-5 w-5" />
+            </Link>
+            <div>
+              <p className="text-sm text-zinc-500">
+                <Link href="/dashboard" className="hover:text-zinc-300">
+                  Dashboard
+                </Link>{" "}
+                /{" "}
+                <Link href="/dashboard/gym" className="hover:text-zinc-300">
+                  Gym
+                </Link>
+              </p>
+              <h1 className="text-2xl font-bold">{entry.label}</h1>
+              <SessionProgress totalSets={totalSets} />
+            </div>
           </div>
           <SaveSessionButton muscleGroup={group} />
         </div>
@@ -110,6 +111,7 @@ export default async function MuscleGroupPage({
           const routineExercises = items.map((i) => i.exercise);
           const routineSets = items.flatMap((i) => i.sets);
           const unit = routineUnit(routineExercises);
+          const points = routineProgressHistory(routineExercises, routineSets);
 
           return (
             <div key={routine.id} className="space-y-3">
@@ -120,13 +122,14 @@ export default async function MuscleGroupPage({
               />
 
               <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
-                <p className="mb-2 text-sm font-semibold text-zinc-300">
-                  {UNIT_LABEL[unit]} per session
+                <p className="text-sm font-semibold text-zinc-100">
+                  {UNIT_LABEL[unit]} — {routine.name}
                 </p>
-                <ProgressChart
-                  points={routineProgressHistory(routineExercises, routineSets)}
-                  unit={unit === "kg" ? "kg" : ""}
-                />
+                <p className="mb-2 text-xs text-zinc-500">
+                  {UNIT_LABEL[unit]} per session · {points.length}{" "}
+                  {points.length === 1 ? "session" : "sessions"}
+                </p>
+                <ProgressChart points={points} unit={unit === "kg" ? "kg" : ""} />
               </div>
 
               <SortableExerciseList

@@ -5,7 +5,9 @@ import {
   estimatedOneRepMax,
   isoWeekStart,
   lastSessionBefore,
+  mostRecentSession,
   lastSessionDate,
+  oneRepMaxHistory,
   plateauExercises,
   progressHistory,
   routineProgressHistory,
@@ -15,6 +17,7 @@ import {
   setsPerMuscleGroup,
   setsThisWeek,
   totalStrength,
+  totalStrengthHistory,
 } from "./derive";
 import type { Exercise, ExerciseSet } from "@/lib/gym/queries";
 
@@ -41,6 +44,7 @@ function makeExercise(overrides: Partial<Exercise>): Exercise {
     user_id: "user",
     routine_id: "routine",
     position: 0,
+    track_1rm: true,
     muscle_group: "chest",
     name: "Bench Press",
     sets: 3,
@@ -77,6 +81,22 @@ describe("lastSessionBefore", () => {
     const result = lastSessionBefore(sets, "2026-01-05");
     expect(result).toHaveLength(2);
     expect(result?.every((s) => s.session_date === "2026-01-03")).toBe(true);
+  });
+});
+
+describe("mostRecentSession", () => {
+  it("returns null with no sets", () => {
+    expect(mostRecentSession([])).toBeNull();
+  });
+
+  it("returns the latest session's sets even if it's today's", () => {
+    const sets = [
+      makeSet({ session_date: "2026-01-01", set_number: 1 }),
+      makeSet({ session_date: todayISOForTest(), set_number: 1 }),
+    ];
+    const result = mostRecentSession(sets);
+    expect(result).toHaveLength(1);
+    expect(result?.[0].session_date).toBe(todayISOForTest());
   });
 });
 
@@ -276,6 +296,55 @@ describe("routineProgressHistory", () => {
       { date: "2026-01-01", value: 100 * 5 + 12 },
       { date: "2026-01-08", value: 105 * 5 },
     ]);
+  });
+});
+
+describe("oneRepMaxHistory", () => {
+  it("takes the best set per day, not a running max — a lighter day is a real dip", () => {
+    const sets = [
+      makeSet({ session_date: "2026-01-01", weight_kg: 100, reps: 5 }),
+      makeSet({ session_date: "2026-01-08", weight_kg: 80, reps: 5 }),
+    ];
+    expect(oneRepMaxHistory(sets)).toEqual([
+      { date: "2026-01-01", value: estimatedOneRepMax(100, 5) },
+      { date: "2026-01-08", value: estimatedOneRepMax(80, 5) },
+    ]);
+  });
+
+  it("ignores sets with no weight logged", () => {
+    const sets = [makeSet({ session_date: "2026-01-01", weight_kg: null, reps: 5 })];
+    expect(oneRepMaxHistory(sets)).toEqual([]);
+  });
+});
+
+describe("totalStrengthHistory", () => {
+  it("sums each exercise's running best 1RM so far, per date", () => {
+    const bench = makeExercise({ id: "bench", tracks_load: true });
+    const squat = makeExercise({ id: "squat", tracks_load: true });
+    const sets = [
+      makeSet({ exercise_id: "bench", session_date: "2026-01-01", weight_kg: 100, reps: 5 }),
+      makeSet({ exercise_id: "squat", session_date: "2026-01-08", weight_kg: 140, reps: 5 }),
+      // A lighter bench day after the PR shouldn't pull the total down.
+      makeSet({ exercise_id: "bench", session_date: "2026-01-15", weight_kg: 90, reps: 5 }),
+    ];
+    const history = totalStrengthHistory([bench, squat], sets);
+    expect(history.map((p) => p.date)).toEqual([
+      "2026-01-01",
+      "2026-01-08",
+      "2026-01-15",
+    ]);
+    expect(history[0].value).toBeCloseTo(estimatedOneRepMax(100, 5));
+    expect(history[1].value).toBeCloseTo(
+      estimatedOneRepMax(100, 5) + estimatedOneRepMax(140, 5),
+    );
+    // Still the bench PR (100x5), not the lighter 90x5 day.
+    expect(history[2].value).toBeCloseTo(history[1].value);
+  });
+
+  it("ignores exercises that don't track load", () => {
+    const bodyweight = makeExercise({ id: "bw", tracks_load: false });
+    const sets = [makeSet({ exercise_id: "bw", session_date: "2026-01-01", reps: 12 })];
+    expect(totalStrengthHistory([bodyweight], sets)).toEqual([]);
   });
 });
 

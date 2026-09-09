@@ -94,6 +94,7 @@ export type Database = {
           reps: number
           routine_id: string
           sets: number
+          track_1rm: boolean
           tracks_load: boolean
           updated_at: string
           user_id: string
@@ -107,6 +108,7 @@ export type Database = {
           reps: number
           routine_id: string
           sets: number
+          track_1rm?: boolean
           tracks_load?: boolean
           updated_at?: string
           user_id: string
@@ -120,6 +122,7 @@ export type Database = {
           reps?: number
           routine_id?: string
           sets?: number
+          track_1rm?: boolean
           tracks_load?: boolean
           updated_at?: string
           user_id?: string

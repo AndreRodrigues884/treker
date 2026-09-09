@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { DraggableAttributes } from "@dnd-kit/core";
 import type { DraggableSyntheticListeners } from "@dnd-kit/core";
-import { lastSessionBefore, setsForDate, todayISO } from "@/lib/gym/derive";
+import { mostRecentSession } from "@/lib/gym/derive";
 import type { Exercise, ExerciseSet } from "@/lib/gym/queries";
 import { deleteExerciseAction, updateExerciseAction } from "@/lib/actions/gym";
 import { EXECUTION_TYPES, DIFFICULTIES } from "@/lib/constants/gym";
@@ -34,7 +34,7 @@ export function ExerciseCard({
     listeners: DraggableSyntheticListeners;
   };
 }) {
-  const { getPendingSet, setPendingSet } = useWorkoutSession();
+  const { pending, getPendingSet, setPendingSet } = useWorkoutSession();
 
   const [editing, setEditing] = useState(false);
   // Collapsed by default — opening a set number is what reveals the rest.
@@ -42,45 +42,35 @@ export function ExerciseCard({
   const [syncedSet, setSyncedSet] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const today = todayISO();
-  const todaySets = setsForDate(sets, today);
-  const lastSession = lastSessionBefore(sets, today);
+  // Once a session is saved, it's just history — "last time" always
+  // means the most recent saved session, even if that was today, and
+  // every fresh visit starts fully unfilled. There's no more special
+  // "already done today" state that pre-fills or blocks re-entry.
+  const lastSession = mostRecentSession(sets);
+  const pendingCountForExercise = Object.keys(pending).filter((key) =>
+    key.startsWith(`${exercise.id}:`),
+  ).length;
 
-  function findTodaySet(setNumber: number) {
-    return todaySets.find((s) => s.set_number === setNumber);
-  }
   function findLastSet(setNumber: number) {
     return lastSession?.find((s) => s.set_number === setNumber);
   }
-  // Deliberately empty (not pre-filled from last session) unless
-  // already staged/saved today — showing last time's numbers as the
-  // placeholder instead means confirming a set always takes a
-  // conscious keystroke, rather than silently re-submitting old data.
+  // Always empty unless staged this visit — last time's numbers only
+  // ever show as the placeholder below, never pre-filled, so confirming
+  // a set takes a conscious keystroke instead of silently resubmitting
+  // old data.
   function weightFor(setNumber: number) {
     const p = getPendingSet(exercise.id, setNumber);
-    if (p) return p.weightKg != null ? String(p.weightKg) : "";
-    const t = findTodaySet(setNumber);
-    return t?.weight_kg != null ? String(t.weight_kg) : "";
+    return p?.weightKg != null ? String(p.weightKg) : "";
   }
   function repsFor(setNumber: number) {
     const p = getPendingSet(exercise.id, setNumber);
-    if (p) return String(p.reps);
-    const t = findTodaySet(setNumber);
-    return t ? String(t.reps) : "";
+    return p ? String(p.reps) : "";
   }
   function executionTypeFor(setNumber: number): ExecutionType {
-    return (
-      getPendingSet(exercise.id, setNumber)?.executionType ??
-      findTodaySet(setNumber)?.execution_type ??
-      "straight"
-    );
+    return getPendingSet(exercise.id, setNumber)?.executionType ?? "straight";
   }
   function difficultyFor(setNumber: number): SetDifficulty {
-    return (
-      getPendingSet(exercise.id, setNumber)?.difficulty ??
-      findTodaySet(setNumber)?.difficulty ??
-      "medium"
-    );
+    return getPendingSet(exercise.id, setNumber)?.difficulty ?? "medium";
   }
 
   const [weight, setWeight] = useState("");
@@ -160,6 +150,7 @@ export function ExerciseCard({
           sets: exercise.sets,
           reps: exercise.reps,
           tracksLoad: exercise.tracks_load,
+          track1rm: exercise.track_1rm,
         }}
         submitLabel="Save changes"
         onCancel={() => setEditing(false)}
@@ -169,195 +160,192 @@ export function ExerciseCard({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-2">
-          {dragHandle && (
-            <button
-              type="button"
-              {...dragHandle.attributes}
-              {...dragHandle.listeners}
-              aria-label="Drag to reorder"
-              className="mt-0.5 touch-none text-zinc-600 hover:text-zinc-400"
-            >
-              <GripIcon className="h-4 w-4" />
-            </button>
-          )}
+    <div className="flex items-center gap-2">
+      <div className="flex-1 space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+        <div className="flex items-start justify-between gap-2">
           <div>
             <h3 className="font-bold text-zinc-100">{exercise.name}</h3>
             <p className="text-sm text-zinc-500">
               {exercise.sets} × {exercise.reps} reps
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-3 text-zinc-500">
-          <span className="text-sm">
-            {todaySets.length}/{exercise.sets}
-          </span>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            aria-label="Edit exercise"
-            className="hover:text-zinc-200"
-          >
-            <PencilIcon className="h-4 w-4" />
-          </button>
-          <form action={deleteExerciseAction}>
-            <input type="hidden" name="exerciseId" value={exercise.id} />
-            <input type="hidden" name="muscleGroup" value={muscleGroup} />
+          <div className="flex items-center gap-3 text-zinc-500">
+            <span className="text-sm">
+              {pendingCountForExercise}/{exercise.sets}
+            </span>
             <button
-              type="submit"
-              aria-label="Delete exercise"
-              className="hover:text-red-400"
-            >
-              <TrashIcon className="h-4 w-4" />
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {Array.from({ length: exercise.sets }, (_, i) => i + 1).map((n) => {
-          const savedInDb = todaySets.some((s) => s.set_number === n);
-          const staged = !!getPendingSet(exercise.id, n);
-          const active = n === activeSet;
-          return (
-            <button
-              key={n}
               type="button"
-              onClick={() => handleToggleSet(n)}
-              className={`flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition ${
-                active
-                  ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
-                  : savedInDb
-                    ? "border-emerald-800 bg-emerald-500/10 text-emerald-400"
+              onClick={() => setEditing(true)}
+              aria-label="Edit exercise"
+              className="hover:text-zinc-200"
+            >
+              <PencilIcon className="h-4 w-4" />
+            </button>
+            <form action={deleteExerciseAction}>
+              <input type="hidden" name="exerciseId" value={exercise.id} />
+              <input type="hidden" name="muscleGroup" value={muscleGroup} />
+              <button
+                type="submit"
+                aria-label="Delete exercise"
+                className="hover:text-red-400"
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
+            </form>
+          </div>
+        </div>
+  
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: exercise.sets }, (_, i) => i + 1).map((n) => {
+            const staged = !!getPendingSet(exercise.id, n);
+            const active = n === activeSet;
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={() => handleToggleSet(n)}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition ${
+                  active
+                    ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
                     : staged
                       ? "border-amber-700 bg-amber-500/10 text-amber-400"
                       : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
-              }`}
+                }`}
+              >
+                {n}
+              </button>
+            );
+          })}
+        </div>
+  
+        {activeSet !== null && (
+          <div className="space-y-4">
+            <div className="h-px bg-zinc-800" />
+  
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-zinc-400">Set {activeSet}</span>
+              {lastSetForActive && (
+                <span className="flex items-center gap-2 text-indigo-300">
+                  Last time:{" "}
+                  {exercise.tracks_load && lastSetForActive.weight_kg != null
+                    ? `${lastSetForActive.weight_kg}kg · `
+                    : ""}
+                  {lastSetForActive.reps} reps
+                  <DifficultyPill value={lastSetForActive.difficulty} />
+                </span>
+              )}
+            </div>
+  
+            <div
+              className={`grid gap-3 ${exercise.tracks_load ? "grid-cols-2" : "grid-cols-1"}`}
             >
-              {n}
-            </button>
-          );
-        })}
-      </div>
-
-      {activeSet !== null && (
-        <div className="space-y-4">
-          <div className="h-px bg-zinc-800" />
-
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-zinc-400">Set {activeSet}</span>
-            {lastSetForActive && (
-              <span className="flex items-center gap-2 text-indigo-300">
-                Last time:{" "}
-                {exercise.tracks_load && lastSetForActive.weight_kg != null
-                  ? `${lastSetForActive.weight_kg}kg · `
-                  : ""}
-                {lastSetForActive.reps} reps
-                <DifficultyPill value={lastSetForActive.difficulty} />
-              </span>
-            )}
-          </div>
-
-          <div
-            className={`grid gap-3 ${exercise.tracks_load ? "grid-cols-2" : "grid-cols-1"}`}
-          >
-            {exercise.tracks_load && (
+              {exercise.tracks_load && (
+                <label className="space-y-1 text-sm text-zinc-400">
+                  Weight (kg)
+                  <input
+                    type="number"
+                    step="0.5"
+                    min={0}
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    placeholder={
+                      lastSetForActive?.weight_kg != null
+                        ? String(lastSetForActive.weight_kg)
+                        : undefined
+                    }
+                    className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
+                  />
+                </label>
+              )}
               <label className="space-y-1 text-sm text-zinc-400">
-                Weight (kg)
+                Reps done
                 <input
                   type="number"
-                  step="0.5"
                   min={0}
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
+                  value={reps}
+                  onChange={(e) => setReps(e.target.value)}
                   placeholder={
-                    lastSetForActive?.weight_kg != null
-                      ? String(lastSetForActive.weight_kg)
-                      : undefined
+                    lastSetForActive
+                      ? String(lastSetForActive.reps)
+                      : String(exercise.reps)
                   }
                   className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
                 />
               </label>
-            )}
-            <label className="space-y-1 text-sm text-zinc-400">
-              Reps done
-              <input
-                type="number"
-                min={0}
-                value={reps}
-                onChange={(e) => setReps(e.target.value)}
-                placeholder={
-                  lastSetForActive
-                    ? String(lastSetForActive.reps)
-                    : String(exercise.reps)
-                }
-                className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
-              />
-            </label>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-sm text-zinc-400">Execution type</p>
+            </div>
+  
+            <div className="space-y-2">
+              <p className="text-sm text-zinc-400">Execution type</p>
+              <div className="grid grid-cols-3 gap-2">
+                {EXECUTION_TYPES.map((et) => (
+                  <button
+                    key={et.value}
+                    type="button"
+                    onClick={() => setExecutionType(et.value)}
+                    className={`rounded-lg border px-2 py-2 text-sm transition ${
+                      executionType === et.value
+                        ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
+                        : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                    }`}
+                  >
+                    {et.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+  
             <div className="grid grid-cols-3 gap-2">
-              {EXECUTION_TYPES.map((et) => (
+              {DIFFICULTIES.map((d) => (
                 <button
-                  key={et.value}
+                  key={d.value}
                   type="button"
-                  onClick={() => setExecutionType(et.value)}
+                  onClick={() => setDifficulty(d.value)}
                   className={`rounded-lg border px-2 py-2 text-sm transition ${
-                    executionType === et.value
-                      ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
+                    difficulty === d.value
+                      ? `border-transparent ${d.tint}`
                       : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
                   }`}
                 >
-                  {et.label}
+                  {d.label}
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            {DIFFICULTIES.map((d) => (
+  
+            {error && (
+              <p role="alert" className="text-sm text-red-400">
+                {error}
+              </p>
+            )}
+  
+            <div className="flex gap-2">
               <button
-                key={d.value}
                 type="button"
-                onClick={() => setDifficulty(d.value)}
-                className={`rounded-lg border px-2 py-2 text-sm transition ${
-                  difficulty === d.value
-                    ? `border-transparent ${d.tint}`
-                    : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
-                }`}
+                onClick={handleCancel}
+                className="flex-1 rounded-lg border border-zinc-800 px-2 py-2 text-sm text-zinc-300 transition hover:border-zinc-600"
               >
-                {d.label}
+                Cancel
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className="flex-1 rounded-lg bg-cyan-500 text-sm font-semibold text-zinc-950 transition hover:brightness-110"
+              >
+                OK
+              </button>
+            </div>
           </div>
-
-          {error && (
-            <p role="alert" className="text-sm text-red-400">
-              {error}
-            </p>
-          )}
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="flex-1 rounded-lg border border-zinc-800 px-2 py-2 text-sm text-zinc-300 transition hover:border-zinc-600"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirm}
-              className="flex-1 rounded-lg bg-cyan-500 text-sm font-semibold text-zinc-950 transition hover:brightness-110"
-            >
-              OK
-            </button>
-          </div>
+        )}
         </div>
+      {dragHandle && (
+        <button
+          type="button"
+          {...dragHandle.attributes}
+          {...dragHandle.listeners}
+          aria-label="Drag to reorder"
+          className="shrink-0 touch-none self-center text-zinc-600 hover:text-zinc-400"
+        >
+          <GripIcon className="h-5 w-5" />
+        </button>
       )}
     </div>
   );

@@ -22,6 +22,17 @@ export function lastSessionBefore(
   return sets.filter((s) => s.session_date === lastDate);
 }
 
+/** The single most recent session's sets, whatever its date — including
+ * today's, if you just saved one. Once a session is saved there's
+ * nothing special about "today" any more: the next visit starts fully
+ * unfilled, and this is purely the "last time" reference. */
+export function mostRecentSession(sets: ExerciseSet[]): ExerciseSet[] | null {
+  if (sets.length === 0) return null;
+  const dates = [...new Set(sets.map((s) => s.session_date))].sort();
+  const latest = dates.at(-1)!;
+  return sets.filter((s) => s.session_date === latest);
+}
+
 export type ProgressPoint = { date: string; value: number };
 
 /** One point per session_date: total volume (kg × reps) if the exercise
@@ -108,6 +119,50 @@ export function bestOneRepMaxPerExercise(
 
 export function totalStrength(perExercise: ExerciseOneRepMax[]): number {
   return perExercise.reduce((sum, e) => sum + e.oneRepMax, 0);
+}
+
+/** Each session date's best estimated 1RM for one exercise — not a
+ * running max, so a lighter/deload session shows as a real dip, not
+ * hidden behind a plateaued high-water mark. */
+export function oneRepMaxHistory(sets: ExerciseSet[]): ProgressPoint[] {
+  const byDate = new Map<string, number>();
+  for (const s of sets) {
+    if (s.weight_kg == null) continue;
+    const oneRm = estimatedOneRepMax(s.weight_kg, s.reps);
+    byDate.set(s.session_date, Math.max(byDate.get(s.session_date) ?? 0, oneRm));
+  }
+  return [...byDate.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([date, value]) => ({ date, value }));
+}
+
+/** "Força Total" over time: the running best 1RM per exercise (a
+ * personal-record high-water mark, unlike oneRepMaxHistory above),
+ * summed across every load-tracking exercise as of each session date —
+ * this is deliberately monotonic, since it only moves when a PR does. */
+export function totalStrengthHistory(
+  exercises: Exercise[],
+  sets: ExerciseSet[],
+): ProgressPoint[] {
+  const loadExerciseIds = new Set(
+    exercises.filter((e) => e.tracks_load).map((e) => e.id),
+  );
+  const relevant = sets.filter(
+    (s) => loadExerciseIds.has(s.exercise_id) && s.weight_kg != null,
+  );
+  const dates = [...new Set(relevant.map((s) => s.session_date))].sort();
+
+  const bestByExercise = new Map<string, number>();
+  return dates.map((date) => {
+    for (const s of relevant) {
+      if (s.session_date !== date) continue;
+      const oneRm = estimatedOneRepMax(s.weight_kg!, s.reps);
+      const prevBest = bestByExercise.get(s.exercise_id) ?? 0;
+      if (oneRm > prevBest) bestByExercise.set(s.exercise_id, oneRm);
+    }
+    const value = [...bestByExercise.values()].reduce((sum, v) => sum + v, 0);
+    return { date, value };
+  });
 }
 
 export type MuscleGroupVolume = { muscleGroup: MuscleGroup; setsCount: number };

@@ -31,6 +31,7 @@ export const exerciseSchema = z
     sets: z.coerce.number().int().min(1, "At least 1 set").max(20),
     reps: z.coerce.number().int().min(1, "At least 1 rep").max(100),
     tracksLoad: z.coerce.boolean(),
+    track1rm: z.coerce.boolean(),
   })
   .refine(
     (data) => data.routineId !== NEW_ROUTINE || !!data.newRoutineName?.length,

@@ -4,11 +4,17 @@ import { getAllExercises, getAllExerciseSets } from "@/lib/gym/queries";
 import {
   averageSessionsPerWeek,
   bestOneRepMaxPerExercise,
+  oneRepMaxHistory,
   plateauExercises,
   setsPerMuscleGroup,
   totalStrength,
+  totalStrengthHistory,
 } from "@/lib/gym/derive";
 import { MuscleGroupVolumeChart } from "@/components/gym/muscle-group-volume-chart";
+import { ProgressChart } from "@/components/gym/progress-chart";
+import { OneRepMaxCard } from "@/components/statistics/one-rep-max-card";
+
+const VIOLET = "#a78bfa";
 
 export default async function StatisticsPage() {
   const user = await getCurrentUser();
@@ -24,6 +30,21 @@ export default async function StatisticsPage() {
 
   const oneRepMaxes = bestOneRepMaxPerExercise(exercises, sets);
   const strength = totalStrength(oneRepMaxes);
+  const strengthHistory = totalStrengthHistory(exercises, sets);
+  const strengthGain =
+    strengthHistory.length > 1 ? strength - strengthHistory[0].value : 0;
+
+  const track1rmById = new Map(exercises.map((e) => [e.id, e.track_1rm]));
+  const oneRepMaxExercises = oneRepMaxes
+    .filter((e) => track1rmById.get(e.exerciseId) !== false)
+    .map((e) => ({
+    exerciseId: e.exerciseId,
+    exerciseName: e.exerciseName,
+    history: oneRepMaxHistory(
+      sets.filter((s) => s.exercise_id === e.exerciseId),
+    ),
+  }));
+
   const volumeByGroup = setsPerMuscleGroup(exercises, sets, 8);
   const plateaued = plateauExercises(exercises, sets, 3);
   const avgSessionsPerWeek = averageSessionsPerWeek(sets);
@@ -35,13 +56,34 @@ export default async function StatisticsPage() {
         <p className="text-zinc-400">Your Gym numbers, across every exercise.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <StatCard
-          title="Força Total"
-          subtitle="Soma dos 1RM acumulados · todos os exercícios"
-        >
-          <p className="text-3xl font-bold text-zinc-100">{formatKg(strength)}</p>
-        </StatCard>
+      <div className="space-y-4">
+        <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="font-semibold text-zinc-100">Força Total</h2>
+              <p className="text-xs text-zinc-500">
+                Soma dos 1RM acumulados · todos os exercícios
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-violet-400">
+                {formatKg(strength)}
+              </p>
+              {strengthGain > 0 && (
+                <p className="text-xs font-medium text-emerald-400">
+                  +{formatKg(strengthGain)} ganhos
+                </p>
+              )}
+            </div>
+          </div>
+          {strengthHistory.length < 2 ? (
+            <EmptyNote>Log at least two sessions to see your progress.</EmptyNote>
+          ) : (
+            <ProgressChart points={strengthHistory} unit="kg" color={VIOLET} />
+          )}
+        </div>
+
+        <OneRepMaxCard exercises={oneRepMaxExercises} />
 
         <StatCard
           title="Treinos por semana"
@@ -54,33 +96,8 @@ export default async function StatisticsPage() {
         </StatCard>
 
         <StatCard
-          title="1RM Estimado"
-          subtitle="Fórmula Epley · peso × (1 + reps/30)"
-          className="sm:col-span-2"
-        >
-          {oneRepMaxes.length === 0 ? (
-            <EmptyNote>Log some weighted sets to see this.</EmptyNote>
-          ) : (
-            <ul className="space-y-2">
-              {oneRepMaxes.slice(0, 6).map((e) => (
-                <li
-                  key={e.exerciseId}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <span className="text-zinc-300">{e.exerciseName}</span>
-                  <span className="font-semibold tabular-nums text-zinc-100">
-                    {formatKg(e.oneRepMax)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </StatCard>
-
-        <StatCard
           title="Volume por grupo muscular"
           subtitle="Séries registadas por grupo muscular · últimas 8 semanas"
-          className="sm:col-span-2"
         >
           <MuscleGroupVolumeChart data={volumeByGroup} />
         </StatCard>
@@ -88,7 +105,6 @@ export default async function StatisticsPage() {
         <StatCard
           title="Análise de Deload"
           subtitle="Exercícios em plateau há 3+ sessões"
-          className="sm:col-span-2"
         >
           {plateaued.length === 0 ? (
             <EmptyNote>No plateaus detected — keep it up.</EmptyNote>
@@ -119,19 +135,15 @@ function StatCard({
   title,
   subtitle,
   note,
-  className = "",
   children,
 }: {
   title: string;
   subtitle: string;
   note?: string;
-  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className={`space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 ${className}`}
-    >
+    <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
       <div>
         <h2 className="font-semibold text-zinc-100">{title}</h2>
         <p className="text-xs text-zinc-500">{subtitle}</p>

@@ -53,6 +53,7 @@ export async function createExerciseAction(
     sets: formData.get("sets"),
     reps: formData.get("reps"),
     tracksLoad: formData.get("tracksLoad") === "on",
+    track1rm: formData.get("track1rm") === "on",
   });
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0].message };
@@ -81,6 +82,7 @@ export async function createExerciseAction(
     sets: parsed.data.sets,
     reps: parsed.data.reps,
     tracks_load: parsed.data.tracksLoad,
+    track_1rm: parsed.data.track1rm,
   });
   if (error) return { status: "error", message: error.message };
 
@@ -101,6 +103,7 @@ export async function updateExerciseAction(
     sets: formData.get("sets"),
     reps: formData.get("reps"),
     tracksLoad: formData.get("tracksLoad") === "on",
+    track1rm: formData.get("track1rm") === "on",
   });
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0].message };
@@ -131,6 +134,7 @@ export async function updateExerciseAction(
       sets: parsed.data.sets,
       reps: parsed.data.reps,
       tracks_load: parsed.data.tracksLoad,
+      track_1rm: parsed.data.track1rm,
     })
     .eq("id", exerciseId)
     .eq("user_id", user.id);

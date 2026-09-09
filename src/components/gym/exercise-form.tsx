@@ -27,6 +27,7 @@ export function ExerciseForm({
     sets: number;
     reps: number;
     tracksLoad: boolean;
+    track1rm: boolean;
   };
   submitLabel?: string;
   onCancel?: () => void;
@@ -36,6 +37,7 @@ export function ExerciseForm({
   const [selectedRoutine, setSelectedRoutine] = useState(
     defaultValues?.routineId ?? routines[0]?.id ?? NEW_ROUTINE,
   );
+  const [tracksLoad, setTracksLoad] = useState(defaultValues?.tracksLoad ?? true);
 
   useEffect(() => {
     if (state?.status === "success") onSuccess?.();
@@ -132,11 +134,24 @@ export function ExerciseForm({
         <input
           type="checkbox"
           name="tracksLoad"
-          defaultChecked={defaultValues?.tracksLoad ?? true}
+          checked={tracksLoad}
+          onChange={(e) => setTracksLoad(e.target.checked)}
           className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 accent-indigo-500"
         />
         Track weight for this exercise
       </label>
+
+      {tracksLoad && (
+        <label className="flex items-center gap-2 text-sm text-zinc-300">
+          <input
+            type="checkbox"
+            name="track1rm"
+            defaultChecked={defaultValues?.track1rm ?? true}
+            className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 accent-indigo-500"
+          />
+          Show this exercise in the 1RM Estimado chart
+        </label>
+      )}
 
       {state?.status === "error" && (
         <p role="alert" className="text-sm text-red-400">

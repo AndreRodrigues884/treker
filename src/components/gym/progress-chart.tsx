@@ -4,9 +4,13 @@ import { useId, useState } from "react";
 import type { ProgressPoint } from "@/lib/gym/derive";
 
 const WIDTH = 320;
-const HEIGHT = 120;
-const PAD_X = 10;
-const PAD_Y = 18;
+const HEIGHT = 150;
+const PAD_TOP = 14;
+const PAD_BOTTOM = 26;
+const PAD_LEFT = 34;
+const PAD_RIGHT = 8;
+const DEFAULT_COLOR = "#818cf8";
+const MAX_X_LABELS = 6;
 
 function formatDate(iso: string) {
   const [, month, day] = iso.split("-");
@@ -20,12 +24,72 @@ function formatValue(value: number, unit: string) {
     : `${rounded}${unit}`;
 }
 
+/** Rounds a [min, max] range out to "nice" step boundaries (1/2/5 × a
+ * power of 10) and returns the tick values — the standard approach so
+ * axis labels read as round numbers instead of raw data extremes. */
+function niceTicks(dataMin: number, dataMax: number, count = 4): number[] {
+  const min = dataMin === dataMax ? dataMin - 1 : dataMin;
+  const max = dataMin === dataMax ? dataMax + 1 : dataMax;
+  const roughStep = (max - min) / (count - 1);
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const residual = roughStep / magnitude;
+  const niceStep =
+    (residual > 5 ? 10 : residual > 2 ? 5 : residual > 1 ? 2 : 1) * magnitude;
+
+  const niceMin = Math.floor(min / niceStep) * niceStep;
+  const niceMax = Math.ceil(max / niceStep) * niceStep;
+
+  const ticks: number[] = [];
+  for (let v = niceMin; v <= niceMax + niceStep / 2; v += niceStep) {
+    ticks.push(Math.round(v * 100) / 100);
+  }
+  return ticks;
+}
+
+/** Evenly-spaced indices to label on the X axis — every point if there
+ * are few, thinned out to avoid overlapping text once there are many. */
+function pickLabelIndices(count: number, max = MAX_X_LABELS): number[] {
+  if (count <= max) return Array.from({ length: count }, (_, i) => i);
+  const step = (count - 1) / (max - 1);
+  const indices = new Set<number>();
+  for (let i = 0; i < max; i++) indices.add(Math.round(i * step));
+  return [...indices].sort((a, b) => a - b);
+}
+
+/** A smooth (Catmull-Rom-derived) cubic-bezier path through every point,
+ * instead of straight segments — reads as a trend line rather than a
+ * sequence of exact angles. */
+function smoothLinePath(coords: { x: number; y: number }[]): string {
+  if (coords.length < 2) return "";
+  if (coords.length === 2) {
+    return `M ${coords[0].x} ${coords[0].y} L ${coords[1].x} ${coords[1].y}`;
+  }
+  let d = `M ${coords[0].x} ${coords[0].y}`;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const p0 = coords[i - 1] ?? coords[i];
+    const p1 = coords[i];
+    const p2 = coords[i + 1];
+    const p3 = coords[i + 2] ?? p2;
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+  }
+  return d;
+}
+
 export function ProgressChart({
   points,
   unit = "",
+  color = DEFAULT_COLOR,
 }: {
   points: ProgressPoint[];
   unit?: string;
+  /** Hex line/fill color — lets different stat cards use different
+   * accents (e.g. violet for total strength, amber for a single
+   * exercise's 1RM) while sharing this one chart implementation. */
+  color?: string;
 }) {
   const gradientId = useId();
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -44,21 +108,26 @@ export function ProgressChart({
   }
 
   const values = points.map((p) => p.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
+  const ticks = niceTicks(Math.min(...values), Math.max(...values));
+  const scaleMin = ticks[0];
+  const scaleMax = ticks.at(-1)!;
+  const scaleRange = scaleMax - scaleMin || 1;
+  const plotHeight = HEIGHT - PAD_TOP - PAD_BOTTOM;
 
-  const xStep = (WIDTH - PAD_X * 2) / (points.length - 1);
+  function yFor(value: number) {
+    return PAD_TOP + (1 - (value - scaleMin) / scaleRange) * plotHeight;
+  }
+
+  const xStep = (WIDTH - PAD_LEFT - PAD_RIGHT) / (points.length - 1);
   const coords = points.map((p, i) => ({
     ...p,
-    x: PAD_X + i * xStep,
-    y: PAD_Y + (1 - (p.value - min) / range) * (HEIGHT - PAD_Y * 2),
+    x: PAD_LEFT + i * xStep,
+    y: yFor(p.value),
   }));
 
-  const linePath = coords
-    .map((c, i) => `${i === 0 ? "M" : "L"} ${c.x} ${c.y}`)
-    .join(" ");
-  const areaPath = `${linePath} L ${coords.at(-1)!.x} ${HEIGHT - PAD_Y} L ${coords[0].x} ${HEIGHT - PAD_Y} Z`;
+  const linePath = smoothLinePath(coords);
+  const areaPath = `${linePath} L ${coords.at(-1)!.x} ${HEIGHT - PAD_BOTTOM} L ${coords[0].x} ${HEIGHT - PAD_BOTTOM} Z`;
+  const labelIndices = pickLabelIndices(coords.length);
 
   const hovered = hoverIndex !== null ? coords[hoverIndex] : null;
   const lastPoint = coords.at(-1)!;
@@ -89,27 +158,37 @@ export function ProgressChart({
           onPointerMove={handlePointerMove}
           onPointerLeave={() => setHoverIndex(null)}
         >
-          <line
-            x1={PAD_X}
-            y1={PAD_Y}
-            x2={WIDTH - PAD_X}
-            y2={PAD_Y}
-            stroke="#2c2c2a"
-            strokeWidth={1}
-          />
-          <line
-            x1={PAD_X}
-            y1={HEIGHT - PAD_Y}
-            x2={WIDTH - PAD_X}
-            y2={HEIGHT - PAD_Y}
-            stroke="#2c2c2a"
-            strokeWidth={1}
-          />
+          {ticks.map((tick) => {
+            const y = yFor(tick);
+            return (
+              <g key={tick}>
+                <line
+                  x1={PAD_LEFT}
+                  y1={y}
+                  x2={WIDTH - PAD_RIGHT}
+                  y2={y}
+                  stroke="#2c2c2a"
+                  strokeWidth={1}
+                  strokeDasharray="2,3"
+                />
+                <text
+                  x={PAD_LEFT - 6}
+                  y={y}
+                  dy="0.32em"
+                  textAnchor="end"
+                  className="fill-zinc-500"
+                  fontSize={9}
+                >
+                  {formatValue(tick, unit)}
+                </text>
+              </g>
+            );
+          })}
 
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#818cf8" stopOpacity={0.16} />
-              <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
+              <stop offset="0%" stopColor={color} stopOpacity={0.16} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
 
@@ -117,7 +196,7 @@ export function ProgressChart({
           <path
             d={linePath}
             fill="none"
-            stroke="#818cf8"
+            stroke={color}
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -126,10 +205,10 @@ export function ProgressChart({
           {hovered && (
             <line
               x1={hovered.x}
-              y1={PAD_Y}
+              y1={PAD_TOP}
               x2={hovered.x}
-              y2={HEIGHT - PAD_Y}
-              stroke="#818cf8"
+              y2={HEIGHT - PAD_BOTTOM}
+              stroke={color}
               strokeOpacity={0.3}
               strokeWidth={1}
             />
@@ -138,16 +217,16 @@ export function ProgressChart({
           {coords.map((c, i) => {
             const isLast = i === coords.length - 1;
             const isHovered = i === hoverIndex;
-            if (!isLast && !isHovered) return null;
+            const emphasized = isLast || isHovered;
             return (
               <circle
                 key={i}
                 cx={c.x}
                 cy={c.y}
-                r={4}
-                fill="#818cf8"
+                r={emphasized ? 4 : 2.5}
+                fill={color}
                 stroke="#0a0a0a"
-                strokeWidth={2}
+                strokeWidth={emphasized ? 2 : 1.5}
               />
             );
           })}
@@ -161,6 +240,24 @@ export function ProgressChart({
           >
             {formatValue(lastPoint.value, unit)}
           </text>
+
+          {labelIndices.map((i) => {
+            const c = coords[i];
+            const anchor =
+              i === 0 ? "start" : i === coords.length - 1 ? "end" : "middle";
+            return (
+              <text
+                key={i}
+                x={c.x}
+                y={HEIGHT - 8}
+                textAnchor={anchor}
+                className="fill-zinc-500"
+                fontSize={9}
+              >
+                {formatDate(c.date)}
+              </text>
+            );
+          })}
         </svg>
 
         {hovered && (
@@ -177,11 +274,6 @@ export function ProgressChart({
             <p className="text-zinc-500">{formatDate(hovered.date)}</p>
           </div>
         )}
-      </div>
-
-      <div className="flex justify-between text-xs text-zinc-500">
-        <span>{formatDate(coords[0].date)}</span>
-        <span>{formatDate(lastPoint.date)}</span>
       </div>
 
       <table className="sr-only">
