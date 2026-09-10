@@ -21,7 +21,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { ExerciseCard } from "@/components/gym/exercise-card";
 import { reorderExercisesAction } from "@/lib/actions/gym";
-import type { Exercise, ExerciseSet } from "@/lib/gym/queries";
+import type { Exercise, ExerciseSet } from "@/types/gym";
 import type { MuscleGroup } from "@/lib/constants/gym";
 
 type Item = { exercise: Exercise; sets: ExerciseSet[] };

@@ -1,4 +1,4 @@
-import type { Exercise, ExerciseSet } from "@/lib/gym/queries";
+import type { Exercise, ExerciseSet } from "@/types/gym";
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/constants/gym";
 
 export function todayISO(): string {

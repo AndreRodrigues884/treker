@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogoMarkIcon } from "@/components/ui/icons";
 
 export function AuthLayout({
   title,
@@ -21,8 +22,8 @@ export function AuthLayout({
           href="/"
           className="mb-8 flex items-center justify-center gap-2 text-lg font-bold tracking-tight"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-violet-500 text-sm">
-            T
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-violet-500">
+            <LogoMarkIcon className="h-5 w-5 text-white" />
           </span>
           Treker
         </Link>

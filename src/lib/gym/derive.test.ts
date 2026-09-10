@@ -19,7 +19,7 @@ import {
   totalStrength,
   totalStrengthHistory,
 } from "./derive";
-import type { Exercise, ExerciseSet } from "@/lib/gym/queries";
+import type { Exercise, ExerciseSet } from "@/types/gym";
 
 function makeSet(overrides: Partial<ExerciseSet>): ExerciseSet {
   return {

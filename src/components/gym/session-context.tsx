@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ExecutionType, SetDifficulty } from "@/lib/constants/gym";
+import { useWorkoutGuard } from "@/components/workout-guard";
 
 export type PendingSet = {
   weightKg: number | null;
@@ -38,6 +39,19 @@ export function WorkoutSessionProvider({
   children: React.ReactNode;
 }) {
   const [pending, setPending] = useState<PendingMap>({});
+  const { setDirty } = useWorkoutGuard();
+
+  // Report "has unsaved sets" up to the shell-level guard whenever the
+  // staged count changes — this is a genuine cross-tree sync (the guard
+  // lives above the sidebar, outside this provider's own subtree), not
+  // derived local state, so an effect is the right tool here. Cleanup
+  // clears it on unmount too, e.g. after a guarded navigation actually
+  // goes through.
+  const pendingCount = Object.keys(pending).length;
+  useEffect(() => {
+    setDirty(pendingCount > 0);
+    return () => setDirty(false);
+  }, [pendingCount, setDirty]);
 
   const setPendingSet = useCallback(
     (exerciseId: string, setNumber: number, data: PendingSet) => {

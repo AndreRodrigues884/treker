@@ -1,14 +1,16 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser, getProfile } from "@/lib/supabase/queries";
 import {
   getExercises,
-  getExerciseSets,
+  getExerciseSetsForExercises,
   getMuscleGroupsWithExercises,
   getRoutines,
 } from "@/lib/gym/queries";
 import { routineProgressHistory, routineUnit } from "@/lib/gym/derive";
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/constants/gym";
+import type { Exercise, Routine } from "@/types/gym";
 import { MuscleGroupTabs } from "@/components/gym/muscle-group-tabs";
 import { AddExercisePanel } from "@/components/gym/add-exercise-panel";
 import { SortableExerciseList } from "@/components/gym/sortable-exercise-list";
@@ -17,6 +19,7 @@ import { RoutineHeading } from "@/components/gym/routine-heading";
 import { WorkoutSessionProvider } from "@/components/gym/session-context";
 import { SaveSessionButton } from "@/components/gym/save-session-button";
 import { SessionProgress } from "@/components/gym/session-progress";
+import { SectionSpinner } from "@/components/ui/section-spinner";
 import { ArrowLeftIcon } from "@/components/ui/icons";
 
 export function generateStaticParams() {
@@ -41,27 +44,18 @@ export default async function MuscleGroupPage({
   const profile = await getProfile(user.id);
   if (!profile?.modalities.includes("gym")) redirect("/dashboard");
 
+  // Routines + exercises are cheap (no sets involved) and drive the
+  // header/tabs/add-exercise picker, so they're worth awaiting up front.
+  // The heavier part — every logged set, grouped and charted per routine
+  // — is deferred into its own Suspense boundary below.
   const [routines, exercises, available] = await Promise.all([
     getRoutines(user.id, group),
     getExercises(user.id, group),
     getMuscleGroupsWithExercises(user.id),
   ]);
 
-  const exercisesWithSets = await Promise.all(
-    exercises.map(async (exercise) => ({
-      exercise,
-      sets: await getExerciseSets(exercise.id),
-    })),
-  );
-
-  const byRoutine = new Map<string, typeof exercisesWithSets>();
-  for (const item of exercisesWithSets) {
-    const list = byRoutine.get(item.exercise.routine_id) ?? [];
-    list.push(item);
-    byRoutine.set(item.exercise.routine_id, list);
-  }
-
   const totalSets = exercises.reduce((sum, e) => sum + e.sets, 0);
+  const routineList = routines.map((r) => ({ id: r.id, name: r.name }));
 
   return (
     <WorkoutSessionProvider>
@@ -94,10 +88,7 @@ export default async function MuscleGroupPage({
 
         <MuscleGroupTabs active={group} available={available} />
 
-        <AddExercisePanel
-          muscleGroup={group}
-          routines={routines.map((r) => ({ id: r.id, name: r.name }))}
-        />
+        <AddExercisePanel muscleGroup={group} routines={routineList} />
 
         {routines.length === 0 && (
           <p className="rounded-2xl border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">
@@ -106,42 +97,91 @@ export default async function MuscleGroupPage({
           </p>
         )}
 
-        {routines.map((routine) => {
-          const items = byRoutine.get(routine.id) ?? [];
-          const routineExercises = items.map((i) => i.exercise);
-          const routineSets = items.flatMap((i) => i.sets);
-          const unit = routineUnit(routineExercises);
-          const points = routineProgressHistory(routineExercises, routineSets);
-
-          return (
-            <div key={routine.id} className="space-y-3">
-              <RoutineHeading
-                routineId={routine.id}
-                muscleGroup={group}
-                name={routine.name}
-              />
-
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
-                <p className="text-sm font-semibold text-zinc-100">
-                  {UNIT_LABEL[unit]} — {routine.name}
-                </p>
-                <p className="mb-2 text-xs text-zinc-500">
-                  {UNIT_LABEL[unit]} per session · {points.length}{" "}
-                  {points.length === 1 ? "session" : "sessions"}
-                </p>
-                <ProgressChart points={points} unit={unit === "kg" ? "kg" : ""} />
-              </div>
-
-              <SortableExerciseList
-                routineId={routine.id}
-                muscleGroup={group}
-                items={items}
-                routines={routines.map((r) => ({ id: r.id, name: r.name }))}
-              />
-            </div>
-          );
-        })}
+        <Suspense
+          fallback={<SectionSpinner label="Loading your exercises…" className="h-40" />}
+        >
+          <RoutineCharts
+            group={group}
+            routines={routines}
+            exercises={exercises}
+            routineList={routineList}
+          />
+        </Suspense>
       </div>
     </WorkoutSessionProvider>
+  );
+}
+
+async function RoutineCharts({
+  group,
+  routines,
+  exercises,
+  routineList,
+}: {
+  group: MuscleGroup;
+  routines: Routine[];
+  exercises: Exercise[];
+  routineList: { id: string; name: string }[];
+}) {
+  // One query for every exercise's sets, not one query per exercise —
+  // that N+1 pattern was the actual cause of muscle groups feeling slow
+  // to switch between.
+  const allSets = await getExerciseSetsForExercises(exercises.map((e) => e.id));
+  const setsByExercise = new Map<string, typeof allSets>();
+  for (const s of allSets) {
+    const list = setsByExercise.get(s.exercise_id) ?? [];
+    list.push(s);
+    setsByExercise.set(s.exercise_id, list);
+  }
+  const exercisesWithSets = exercises.map((exercise) => ({
+    exercise,
+    sets: setsByExercise.get(exercise.id) ?? [],
+  }));
+
+  const byRoutine = new Map<string, typeof exercisesWithSets>();
+  for (const item of exercisesWithSets) {
+    const list = byRoutine.get(item.exercise.routine_id) ?? [];
+    list.push(item);
+    byRoutine.set(item.exercise.routine_id, list);
+  }
+
+  return (
+    <>
+      {routines.map((routine) => {
+        const items = byRoutine.get(routine.id) ?? [];
+        const routineExercises = items.map((i) => i.exercise);
+        const routineSets = items.flatMap((i) => i.sets);
+        const unit = routineUnit(routineExercises);
+        const points = routineProgressHistory(routineExercises, routineSets);
+
+        return (
+          <div key={routine.id} className="space-y-3">
+            <RoutineHeading
+              routineId={routine.id}
+              muscleGroup={group}
+              name={routine.name}
+            />
+
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+              <p className="text-sm font-semibold text-zinc-100">
+                {UNIT_LABEL[unit]} — {routine.name}
+              </p>
+              <p className="mb-2 text-xs text-zinc-500">
+                {UNIT_LABEL[unit]} per session · {points.length}{" "}
+                {points.length === 1 ? "session" : "sessions"}
+              </p>
+              <ProgressChart points={points} unit={unit === "kg" ? "kg" : ""} />
+            </div>
+
+            <SortableExerciseList
+              routineId={routine.id}
+              muscleGroup={group}
+              items={items}
+              routines={routineList}
+            />
+          </div>
+        );
+      })}
+    </>
   );
 }

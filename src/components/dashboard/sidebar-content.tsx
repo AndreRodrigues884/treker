@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOutAction } from "@/lib/auth/actions";
-import { XIcon } from "@/components/ui/icons";
+import { XIcon, LogoMarkIcon } from "@/components/ui/icons";
 import type { ModalityOption } from "@/lib/constants/onboarding";
+import { useWorkoutGuard } from "@/components/workout-guard";
 
 /**
  * The whole sidebar — brand header, nav (icon badge + active highlight),
@@ -27,13 +27,19 @@ export function SidebarContent({
   onClose?: () => void;
 }) {
   const pathname = usePathname();
+  const { navigate } = useWorkoutGuard();
+
+  function handleNav(href: string) {
+    navigate(href);
+    onNavigate?.();
+  }
 
   const items = [
     {
       href: "/dashboard",
       label: "Overview",
       icon: "📊",
-      tint: "bg-indigo-500/15",
+      tint: "bg-linear-to-br from-indigo-500/30 to-indigo-500/5",
     },
     ...tabs.map((t) => ({
       href: `/dashboard/${t.value}`,
@@ -49,7 +55,7 @@ export function SidebarContent({
             href: "/dashboard/statistics",
             label: "Statistics",
             icon: "📈",
-            tint: "bg-violet-500/15",
+            tint: "bg-linear-to-br from-violet-500/30 to-violet-500/5",
           },
         ]
       : []),
@@ -57,7 +63,7 @@ export function SidebarContent({
       href: "/dashboard/settings",
       label: "Settings",
       icon: "⚙️",
-      tint: "bg-zinc-500/15",
+      tint: "bg-linear-to-br from-zinc-500/25 to-zinc-500/5",
     },
   ];
 
@@ -67,8 +73,8 @@ export function SidebarContent({
     <div className="flex h-full flex-col">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-500 text-lg font-bold">
-            T
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-500">
+            <LogoMarkIcon className="h-6 w-6 text-white" />
           </span>
           <div className="min-w-0">
             <p className="text-base font-bold tracking-tight">Treker</p>
@@ -89,13 +95,20 @@ export function SidebarContent({
 
       <nav className="flex-1 space-y-1">
         {items.map((item) => {
-          const active = pathname === item.href;
+          // "/dashboard" itself only highlights on an exact match, or it'd
+          // stay lit up on every other tab too (they all start with it);
+          // every other tab highlights for its whole sub-tree, so e.g.
+          // /dashboard/gym/legs still keeps "Gym" active.
+          const active =
+            item.href === "/dashboard"
+              ? pathname === item.href
+              : pathname.startsWith(item.href);
           return (
-            <Link
+            <button
               key={item.href}
-              href={item.href}
-              onClick={onNavigate}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
+              type="button"
+              onClick={() => handleNav(item.href)}
+              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
                 active
                   ? "bg-indigo-500/15 font-medium text-indigo-300"
                   : "text-zinc-300 hover:bg-zinc-900"
@@ -107,7 +120,7 @@ export function SidebarContent({
                 {item.icon}
               </span>
               {item.label}
-            </Link>
+            </button>
           );
         })}
       </nav>

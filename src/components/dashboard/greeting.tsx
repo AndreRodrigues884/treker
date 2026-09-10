@@ -9,7 +9,15 @@ import { useEffect, useState } from "react";
  * anyone not in the same timezone as wherever the app is deployed, and
  * computing it during SSR would mismatch the client on hydration.
  */
-export function Greeting({ email }: { email: string }) {
+export function Greeting({
+  name,
+  email,
+}: {
+  /** Preferred display identity — set from Settings > Profile. Falls
+   * back to the account email until the user adds one. */
+  name?: string | null;
+  email: string;
+}) {
   const [greeting, setGreeting] = useState("Hello");
 
   useEffect(() => {
@@ -25,7 +33,7 @@ export function Greeting({ email }: { email: string }) {
 
   return (
     <p className="text-zinc-400">
-      {greeting}, <span className="text-zinc-200">{email}</span>
+      {greeting}, <span className="text-zinc-200">{name || email}</span>
     </p>
   );
 }

@@ -15,6 +15,7 @@ export async function signUpAction(
   formData: FormData,
 ): Promise<SignUpResult> {
   const parsed = signUpSchema.safeParse({
+    name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
   });
@@ -23,7 +24,15 @@ export async function signUpAction(
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp(parsed.data);
+  const { data, error } = await supabase.auth.signUp({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    // Stored on the auth user itself (not the profiles table, which
+    // doesn't exist yet at this point — it's only created during
+    // onboarding), so it's already there by the time the dashboard needs
+    // it for the greeting.
+    options: parsed.data.name ? { data: { full_name: parsed.data.name } } : undefined,
+  });
   if (error) {
     return { status: "error", message: error.message };
   }

@@ -6,27 +6,17 @@ export default function Loading() {
         <div className="h-4 w-72 rounded bg-zinc-900" />
       </div>
 
-      <div className="space-y-3">
-        <div className="h-5 w-40 rounded bg-zinc-800" />
-        <div className="grid grid-cols-3 gap-3">
-          <div className="h-16 rounded-2xl bg-zinc-900" />
-          <div className="h-16 rounded-2xl bg-zinc-900" />
-          <div className="h-16 rounded-2xl bg-zinc-900" />
-        </div>
+      <div className="flex gap-2 border-b border-zinc-800 pb-3">
+        <div className="h-9 w-24 rounded-xl bg-zinc-900" />
+        <div className="h-9 w-40 rounded-xl bg-zinc-900" />
+        <div className="h-9 w-28 rounded-xl bg-zinc-900" />
+        <div className="h-9 w-24 rounded-xl bg-zinc-900" />
       </div>
 
       <div className="space-y-3">
-        <div className="h-5 w-24 rounded bg-zinc-800" />
-        <div className="grid grid-cols-2 gap-3">
-          <div className="h-14 rounded-2xl bg-zinc-900" />
-          <div className="h-14 rounded-2xl bg-zinc-900" />
-          <div className="h-14 rounded-2xl bg-zinc-900" />
-          <div className="h-14 rounded-2xl bg-zinc-900" />
-          <div className="col-span-2 h-14 rounded-2xl bg-zinc-900" />
-        </div>
+        <div className="h-11 w-full rounded-xl bg-zinc-900" />
+        <div className="h-11 w-full rounded-xl bg-zinc-900" />
       </div>
-
-      <div className="h-11 w-full rounded-xl bg-zinc-900" />
     </div>
   );
 }

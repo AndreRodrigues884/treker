@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MenuIcon } from "@/components/ui/icons";
+import { MenuIcon, LogoMarkIcon } from "@/components/ui/icons";
 import { SidebarContent } from "@/components/dashboard/sidebar-content";
 import type { ModalityOption } from "@/lib/constants/onboarding";
 
@@ -20,8 +20,8 @@ export function MobileNav({
     <>
       <header className="flex items-center justify-between border-b border-zinc-800 bg-slate-950/80 px-4 py-3 md:hidden">
         <span className="flex items-center gap-2 text-base font-bold tracking-tight">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-violet-500 text-xs">
-            T
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-violet-500">
+            <LogoMarkIcon className="h-4 w-4 text-white" />
           </span>
           Treker
         </span>

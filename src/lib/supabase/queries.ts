@@ -1,6 +1,6 @@
 import { cache } from "react";
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/supabase/database.types";
 
 /**
  * `cache()` dedupes repeated calls within the same request/render pass —
@@ -35,4 +35,19 @@ export const getProfile = cache(async (userId: string) => {
   return data;
 });
 
-export type Profile = Tables<"profiles">;
+// Profile row type now lives in src/types/profile.ts — import it from
+// there, not from here.
+
+/** The name set from Settings > Profile, stored on the auth user's own
+ * metadata rather than a profiles column — every signed-in user can
+ * already update this for themselves, no RLS/migration needed. `null`
+ * until they set one, so callers fall back to email. */
+export function getDisplayName(user: User): string | null {
+  const name = user.user_metadata?.full_name;
+  return typeof name === "string" && name.trim() ? name : null;
+}
+
+export function getNotificationsEnabled(user: User): boolean {
+  const value = user.user_metadata?.notifications_enabled;
+  return typeof value === "boolean" ? value : true;
+}

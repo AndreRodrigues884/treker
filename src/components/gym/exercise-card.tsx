@@ -4,14 +4,10 @@ import { useState } from "react";
 import type { DraggableAttributes } from "@dnd-kit/core";
 import type { DraggableSyntheticListeners } from "@dnd-kit/core";
 import { mostRecentSession } from "@/lib/gym/derive";
-import type { Exercise, ExerciseSet } from "@/lib/gym/queries";
+import type { Exercise, ExerciseSet } from "@/types/gym";
 import { deleteExerciseAction, updateExerciseAction } from "@/lib/actions/gym";
-import { EXECUTION_TYPES, DIFFICULTIES } from "@/lib/constants/gym";
-import type {
-  ExecutionType,
-  SetDifficulty,
-  MuscleGroup,
-} from "@/lib/constants/gym";
+import { DIFFICULTIES } from "@/lib/constants/gym";
+import type { SetDifficulty, MuscleGroup } from "@/lib/constants/gym";
 import { ExerciseForm } from "@/components/gym/exercise-form";
 import { useWorkoutSession } from "@/components/gym/session-context";
 import { GripIcon, PencilIcon, TrashIcon } from "@/components/ui/icons";
@@ -66,16 +62,12 @@ export function ExerciseCard({
     const p = getPendingSet(exercise.id, setNumber);
     return p ? String(p.reps) : "";
   }
-  function executionTypeFor(setNumber: number): ExecutionType {
-    return getPendingSet(exercise.id, setNumber)?.executionType ?? "straight";
-  }
   function difficultyFor(setNumber: number): SetDifficulty {
     return getPendingSet(exercise.id, setNumber)?.difficulty ?? "medium";
   }
 
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState(String(exercise.reps));
-  const [executionType, setExecutionType] = useState<ExecutionType>("straight");
   const [difficulty, setDifficulty] = useState<SetDifficulty>("medium");
 
   // Adjust state during render when the selected set changes — React's
@@ -86,7 +78,6 @@ export function ExerciseCard({
     if (activeSet !== null) {
       setWeight(weightFor(activeSet));
       setReps(repsFor(activeSet));
-      setExecutionType(executionTypeFor(activeSet));
       setDifficulty(difficultyFor(activeSet));
     }
     setError(null);
@@ -132,7 +123,7 @@ export function ExerciseCard({
     setPendingSet(exercise.id, activeSet, {
       weightKg: parsedWeight,
       reps: parsedReps,
-      executionType,
+      executionType: "straight",
       difficulty,
     });
     setActiveSet(null);
@@ -272,26 +263,6 @@ export function ExerciseCard({
                   className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
                 />
               </label>
-            </div>
-  
-            <div className="space-y-2">
-              <p className="text-sm text-zinc-400">Execution type</p>
-              <div className="grid grid-cols-3 gap-2">
-                {EXECUTION_TYPES.map((et) => (
-                  <button
-                    key={et.value}
-                    type="button"
-                    onClick={() => setExecutionType(et.value)}
-                    className={`rounded-lg border px-2 py-2 text-sm transition ${
-                      executionType === et.value
-                        ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
-                        : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
-                    }`}
-                  >
-                    {et.label}
-                  </button>
-                ))}
-              </div>
             </div>
   
             <div className="grid grid-cols-3 gap-2">

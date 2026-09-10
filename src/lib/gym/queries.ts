@@ -1,11 +1,9 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/supabase/database.types";
 import type { MuscleGroup } from "@/lib/constants/gym";
 
-export type Exercise = Tables<"exercises">;
-export type ExerciseSet = Tables<"exercise_sets">;
-export type Routine = Tables<"routines">;
+// Row types (Exercise/ExerciseSet/Routine) now live in src/types/gym.ts —
+// import them from there, not from here.
 
 /** Named groups of exercises that share one progress chart — e.g. two
  * different Leg days end up as two routines, each with its own chart. */
@@ -56,6 +54,24 @@ export const getExerciseSets = cache(async (exerciseId: string) => {
     .order("set_number", { ascending: true });
   return data ?? [];
 });
+
+/** Every set for a batch of exercises, in one query — use this instead of
+ * calling getExerciseSets() in a loop (an N+1 round-trip per exercise is
+ * exactly what made switching muscle groups feel slow). Group the result
+ * by exercise_id locally. */
+export const getExerciseSetsForExercises = cache(
+  async (exerciseIds: string[]) => {
+    if (exerciseIds.length === 0) return [];
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("exercise_sets")
+      .select("*")
+      .in("exercise_id", exerciseIds)
+      .order("session_date", { ascending: true })
+      .order("set_number", { ascending: true });
+    return data ?? [];
+  },
+);
 
 /** Every exercise the user has, across all muscle groups — for the
  * cross-cutting Statistics page. */

@@ -8,9 +8,24 @@
  */
 
 export const MODALITIES = [
-  { value: "gym", label: "Gym", icon: "🏋️", tint: "bg-orange-500/15" },
-  { value: "swimming", label: "Swimming", icon: "🏊", tint: "bg-blue-500/15" },
-  { value: "running", label: "Running", icon: "🏃", tint: "bg-emerald-500/15" },
+  {
+    value: "gym",
+    label: "Gym",
+    icon: "🏋️",
+    tint: "bg-linear-to-br from-orange-500/30 to-orange-500/5",
+  },
+  {
+    value: "swimming",
+    label: "Swimming",
+    icon: "🏊",
+    tint: "bg-linear-to-br from-blue-500/30 to-blue-500/5",
+  },
+  {
+    value: "running",
+    label: "Running",
+    icon: "🏃",
+    tint: "bg-linear-to-br from-emerald-500/30 to-emerald-500/5",
+  },
 ] as const;
 
 export const TRAINING_GOALS = [

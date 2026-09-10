@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { signUpAction, type SignUpResult } from "@/lib/actions/auth";
 import { TextField, PasswordField } from "@/components/ui/text-field";
-import { MailIcon, LockIcon, SpinnerIcon } from "@/components/ui/icons";
+import { MailIcon, LockIcon, UserIcon, SpinnerIcon } from "@/components/ui/icons";
 
 const initialState: SignUpResult = null;
 
@@ -23,6 +23,14 @@ export function SignUpForm() {
 
   return (
     <form action={formAction} className="space-y-5">
+      <TextField
+        label="Name (optional)"
+        icon={<UserIcon />}
+        name="name"
+        type="text"
+        autoComplete="name"
+        placeholder="How should we greet you?"
+      />
       <TextField
         label="Email"
         icon={<MailIcon />}

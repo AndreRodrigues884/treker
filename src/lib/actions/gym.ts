@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exerciseSchema, setLogSchema } from "@/lib/validation/gym";
 import type { PendingSet } from "@/components/gym/session-context";
 import { NEW_ROUTINE, type MuscleGroup } from "@/lib/constants/gym";
-import type { TablesInsert } from "@/lib/supabase/database.types";
+import type { TablesInsert } from "@/types/database.types";
 
 export type GymFormResult =
   | { status: "error"; message: string }
