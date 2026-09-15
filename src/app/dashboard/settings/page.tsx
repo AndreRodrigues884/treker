@@ -43,7 +43,7 @@ export default async function SettingsPage() {
           },
           {
             id: "goals",
-            label: "Atualizar objetivos de treino",
+            label: "Update training objectives",
             icon: "🎯",
             content: (
               <PreferencesForm

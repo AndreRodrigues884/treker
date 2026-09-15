@@ -2,6 +2,7 @@
 
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/constants/gym";
 import { useWorkoutGuard } from "@/components/workout-guard";
+import { MuscleGroupIcon } from "@/components/gym/muscle-group-icon";
 
 /** Quick-switch row — only muscle groups that already have at least one
  * exercise (plus whichever one is active). Goes through the workout guard
@@ -34,7 +35,7 @@ export function MuscleGroupTabs({
               : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
           }`}
         >
-          <span>{m.icon}</span>
+          <MuscleGroupIcon group={m.value} className="h-4 w-4" />
           {m.label}
         </button>
       ))}

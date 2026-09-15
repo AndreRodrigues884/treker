@@ -4,6 +4,7 @@ import { getCurrentUser, getProfile } from "@/lib/supabase/queries";
 import { getMuscleGroupsWithExercises } from "@/lib/gym/queries";
 import { MUSCLE_GROUPS } from "@/lib/constants/gym";
 import { AddMuscleGroupButton } from "@/components/gym/add-muscle-group-button";
+import { MuscleGroupIcon } from "@/components/gym/muscle-group-icon";
 
 export default async function GymPage() {
   const user = await getCurrentUser();
@@ -40,9 +41,9 @@ export default async function GymPage() {
                 className="flex flex-col items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-4 py-6 text-center transition hover:border-zinc-600"
               >
                 <span
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl text-xl ${m.tint}`}
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${m.tint}`}
                 >
-                  {m.icon}
+                  <MuscleGroupIcon group={m.value} className="h-6 w-6" />
                 </span>
                 <span className="text-sm font-medium text-zinc-200">
                   {m.label}
@@ -61,9 +62,9 @@ export default async function GymPage() {
               className="flex flex-col items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-4 py-6 text-center transition hover:border-zinc-600"
             >
               <span
-                className={`flex h-10 w-10 items-center justify-center rounded-xl text-xl ${m.tint}`}
+                className={`flex h-10 w-10 items-center justify-center rounded-xl ${m.tint}`}
               >
-                {m.icon}
+                <MuscleGroupIcon group={m.value} className="h-6 w-6" />
               </span>
               <span className="text-sm font-medium text-zinc-200">
                 {m.label}

@@ -5,14 +5,17 @@
  * future aggregations stay consistent.
  */
 
+// icon is a hand-drawn body-silhouette diagram (MuscleGroupIcon), not an
+// emoji field here — it keys off `value` directly, so there's nothing to
+// list per entry.
 export const MUSCLE_GROUPS = [
-  { value: "back", label: "Back", icon: "🦾", tint: "bg-orange-500/15", barTint: "bg-orange-500" },
-  { value: "chest", label: "Chest", icon: "🫀", tint: "bg-blue-500/15", barTint: "bg-blue-500" },
-  { value: "legs", label: "Legs", icon: "🦵", tint: "bg-emerald-500/15", barTint: "bg-emerald-500" },
-  { value: "shoulders", label: "Shoulders", icon: "🤷", tint: "bg-purple-500/15", barTint: "bg-purple-500" },
-  { value: "biceps", label: "Biceps", icon: "💪", tint: "bg-pink-500/15", barTint: "bg-pink-500" },
-  { value: "triceps", label: "Triceps", icon: "🔱", tint: "bg-cyan-500/15", barTint: "bg-cyan-500" },
-  { value: "core", label: "Core", icon: "🎯", tint: "bg-amber-500/15", barTint: "bg-amber-500" },
+  { value: "back", label: "Back", tint: "bg-orange-500/15", barTint: "bg-orange-500" },
+  { value: "chest", label: "Chest", tint: "bg-blue-500/15", barTint: "bg-blue-500" },
+  { value: "legs", label: "Legs", tint: "bg-emerald-500/15", barTint: "bg-emerald-500" },
+  { value: "shoulders", label: "Shoulders", tint: "bg-purple-500/15", barTint: "bg-purple-500" },
+  { value: "biceps", label: "Biceps", tint: "bg-pink-500/15", barTint: "bg-pink-500" },
+  { value: "triceps", label: "Triceps", tint: "bg-cyan-500/15", barTint: "bg-cyan-500" },
+  { value: "core", label: "Core", tint: "bg-amber-500/15", barTint: "bg-amber-500" },
 ] as const;
 
 export const EXECUTION_TYPES = [

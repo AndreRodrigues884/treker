@@ -26,9 +26,12 @@ body {
 /* Belt-and-suspenders against any accidental horizontal overflow (a
    decorative blob, a chart, a drawer mid-transition) ever becoming a
    visible horizontal scrollbar — this app is meant to never scroll
-   sideways on any device. */
-html,
-body {
+   sideways on any device. Only on html, not body: setting overflow-x on
+   an element implicitly forces its overflow-y to auto too, and having
+   that on both html and body turns body into a second, competing scroll
+   container — which is exactly what was silently breaking every
+   `position: sticky` element inside it (the dashboard sidebar included). */
+html {
   overflow-x: hidden;
 }
 

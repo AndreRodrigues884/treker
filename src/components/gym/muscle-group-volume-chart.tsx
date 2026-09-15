@@ -1,5 +1,6 @@
 import { MUSCLE_GROUPS } from "@/lib/constants/gym";
 import type { MuscleGroupVolume } from "@/lib/gym/derive";
+import { MuscleGroupIcon } from "@/components/gym/muscle-group-icon";
 
 /** Horizontal bars — 7 categories with longish labels read better this
  * way than as columns. Each bar keeps its muscle group's own established
@@ -17,7 +18,7 @@ export function MuscleGroupVolumeChart({ data }: { data: MuscleGroupVolume[] }) 
         return (
           <div key={d.muscleGroup} className="flex items-center gap-3">
             <span className="flex w-28 shrink-0 items-center gap-1.5 text-sm text-zinc-400">
-              <span aria-hidden>{entry.icon}</span>
+              <MuscleGroupIcon group={entry.value} className="h-3.5 w-3.5" />
               {entry.label}
             </span>
             <div className="h-2 flex-1 rounded-full bg-zinc-800">

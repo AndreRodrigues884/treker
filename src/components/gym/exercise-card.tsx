@@ -151,16 +151,16 @@ export function ExerciseCard({
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-bold text-zinc-100">{exercise.name}</h3>
-            <p className="text-sm text-zinc-500">
-              {exercise.sets} × {exercise.reps} reps
-            </p>
-          </div>
-          <div className="flex items-center gap-3 text-zinc-500">
+    <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className="font-bold text-zinc-100">{exercise.name}</h3>
+          <p className="text-sm text-zinc-500">
+            {exercise.sets} × {exercise.reps} reps
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-6 text-zinc-500">
+          <div className="flex items-center gap-3">
             <span className="text-sm">
               {pendingCountForExercise}/{exercise.sets}
             </span>
@@ -184,139 +184,139 @@ export function ExerciseCard({
               </button>
             </form>
           </div>
-        </div>
-  
-        <div className="flex flex-wrap gap-2">
-          {Array.from({ length: exercise.sets }, (_, i) => i + 1).map((n) => {
-            const staged = !!getPendingSet(exercise.id, n);
-            const active = n === activeSet;
-            return (
-              <button
-                key={n}
-                type="button"
-                onClick={() => handleToggleSet(n)}
-                className={`flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition ${
-                  active
-                    ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
-                    : staged
-                      ? "border-amber-700 bg-amber-500/10 text-amber-400"
-                      : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
-                }`}
-              >
-                {n}
-              </button>
-            );
-          })}
-        </div>
-  
-        {activeSet !== null && (
-          <div className="space-y-4">
-            <div className="h-px bg-zinc-800" />
-  
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-zinc-400">Set {activeSet}</span>
-              {lastSetForActive && (
-                <span className="flex items-center gap-2 text-indigo-300">
-                  Last time:{" "}
-                  {exercise.tracks_load && lastSetForActive.weight_kg != null
-                    ? `${lastSetForActive.weight_kg}kg · `
-                    : ""}
-                  {lastSetForActive.reps} reps
-                  <DifficultyPill value={lastSetForActive.difficulty} />
-                </span>
-              )}
-            </div>
-  
-            <div
-              className={`grid gap-3 ${exercise.tracks_load ? "grid-cols-2" : "grid-cols-1"}`}
+          {dragHandle && (
+            <button
+              type="button"
+              {...dragHandle.attributes}
+              {...dragHandle.listeners}
+              aria-label="Drag to reorder"
+              className="touch-none hover:text-zinc-300"
             >
-              {exercise.tracks_load && (
-                <label className="space-y-1 text-sm text-zinc-400">
-                  Weight (kg)
-                  <input
-                    type="number"
-                    step="0.5"
-                    min={0}
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    placeholder={
-                      lastSetForActive?.weight_kg != null
-                        ? String(lastSetForActive.weight_kg)
-                        : undefined
-                    }
-                    className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
-                  />
-                </label>
-              )}
+              <GripIcon className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {Array.from({ length: exercise.sets }, (_, i) => i + 1).map((n) => {
+          const staged = !!getPendingSet(exercise.id, n);
+          const active = n === activeSet;
+          return (
+            <button
+              key={n}
+              type="button"
+              onClick={() => handleToggleSet(n)}
+              className={`flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition ${
+                active
+                  ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
+                  : staged
+                    ? "border-amber-700 bg-amber-500/10 text-amber-400"
+                    : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+              }`}
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeSet !== null && (
+        <div className="space-y-4">
+          <div className="h-px bg-zinc-800" />
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-zinc-400">Set {activeSet}</span>
+            {lastSetForActive && (
+              <span className="flex items-center gap-2 text-indigo-300">
+                Last time:{" "}
+                {exercise.tracks_load && lastSetForActive.weight_kg != null
+                  ? `${lastSetForActive.weight_kg}kg · `
+                  : ""}
+                {lastSetForActive.reps} reps
+                <DifficultyPill value={lastSetForActive.difficulty} />
+              </span>
+            )}
+          </div>
+
+          <div
+            className={`grid gap-3 ${exercise.tracks_load ? "grid-cols-2" : "grid-cols-1"}`}
+          >
+            {exercise.tracks_load && (
               <label className="space-y-1 text-sm text-zinc-400">
-                Reps done
+                Weight (kg)
                 <input
                   type="number"
+                  step="0.5"
                   min={0}
-                  value={reps}
-                  onChange={(e) => setReps(e.target.value)}
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
                   placeholder={
-                    lastSetForActive
-                      ? String(lastSetForActive.reps)
-                      : String(exercise.reps)
+                    lastSetForActive?.weight_kg != null
+                      ? String(lastSetForActive.weight_kg)
+                      : undefined
                   }
                   className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
                 />
               </label>
-            </div>
-  
-            <div className="grid grid-cols-3 gap-2">
-              {DIFFICULTIES.map((d) => (
-                <button
-                  key={d.value}
-                  type="button"
-                  onClick={() => setDifficulty(d.value)}
-                  className={`rounded-lg border px-2 py-2 text-sm transition ${
-                    difficulty === d.value
-                      ? `border-transparent ${d.tint}`
-                      : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
-                  }`}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-  
-            {error && (
-              <p role="alert" className="text-sm text-red-400">
-                {error}
-              </p>
             )}
-  
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="flex-1 rounded-lg border border-zinc-800 px-2 py-2 text-sm text-zinc-300 transition hover:border-zinc-600"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirm}
-                className="flex-1 rounded-lg bg-cyan-500 text-sm font-semibold text-zinc-950 transition hover:brightness-110"
-              >
-                OK
-              </button>
-            </div>
+            <label className="space-y-1 text-sm text-zinc-400">
+              Reps done
+              <input
+                type="number"
+                min={0}
+                value={reps}
+                onChange={(e) => setReps(e.target.value)}
+                placeholder={
+                  lastSetForActive
+                    ? String(lastSetForActive.reps)
+                    : String(exercise.reps)
+                }
+                className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
+              />
+            </label>
           </div>
-        )}
+
+          <div className="grid grid-cols-3 gap-2">
+            {DIFFICULTIES.map((d) => (
+              <button
+                key={d.value}
+                type="button"
+                onClick={() => setDifficulty(d.value)}
+                className={`rounded-lg border px-2 py-2 text-sm transition ${
+                  difficulty === d.value
+                    ? `border-transparent ${d.tint}`
+                    : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+
+          {error && (
+            <p role="alert" className="text-sm text-red-400">
+              {error}
+            </p>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="flex-1 rounded-lg border border-zinc-800 px-2 py-2 text-sm text-zinc-300 transition hover:border-zinc-600"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="flex-1 rounded-lg bg-cyan-500 text-sm font-semibold text-zinc-950 transition hover:brightness-110"
+            >
+              OK
+            </button>
+          </div>
         </div>
-      {dragHandle && (
-        <button
-          type="button"
-          {...dragHandle.attributes}
-          {...dragHandle.listeners}
-          aria-label="Drag to reorder"
-          className="shrink-0 touch-none self-center text-zinc-600 hover:text-zinc-400"
-        >
-          <GripIcon className="h-5 w-5" />
-        </button>
       )}
     </div>
   );

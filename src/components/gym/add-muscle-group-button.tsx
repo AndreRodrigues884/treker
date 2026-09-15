@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { PlusIcon } from "@/components/ui/icons";
 import type { MuscleGroupOption } from "@/lib/constants/gym";
+import { MuscleGroupIcon } from "@/components/gym/muscle-group-icon";
 
 export function AddMuscleGroupButton({
   remaining,
@@ -49,9 +50,9 @@ export function AddMuscleGroupButton({
             className="flex flex-col items-center gap-2 rounded-xl border border-zinc-800 px-4 py-4 text-center transition hover:border-zinc-600"
           >
             <span
-              className={`flex h-9 w-9 items-center justify-center rounded-lg text-lg ${m.tint}`}
+              className={`flex h-9 w-9 items-center justify-center rounded-lg ${m.tint}`}
             >
-              {m.icon}
+              <MuscleGroupIcon group={m.value} className="h-5 w-5" />
             </span>
             <span className="text-sm text-zinc-200">{m.label}</span>
           </Link>
