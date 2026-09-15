@@ -51,6 +51,7 @@ export async function createExerciseAction(
     newRoutineName: formData.get("newRoutineName") ?? undefined,
     name: formData.get("name"),
     sets: formData.get("sets"),
+    unit: formData.get("unit"),
     reps: formData.get("reps"),
     tracksLoad: formData.get("tracksLoad") === "on",
     track1rm: formData.get("track1rm") === "on",
@@ -81,6 +82,7 @@ export async function createExerciseAction(
     name: parsed.data.name,
     sets: parsed.data.sets,
     reps: parsed.data.reps,
+    unit: parsed.data.unit,
     tracks_load: parsed.data.tracksLoad,
     track_1rm: parsed.data.track1rm,
   });
@@ -101,6 +103,7 @@ export async function updateExerciseAction(
     newRoutineName: formData.get("newRoutineName") ?? undefined,
     name: formData.get("name"),
     sets: formData.get("sets"),
+    unit: formData.get("unit"),
     reps: formData.get("reps"),
     tracksLoad: formData.get("tracksLoad") === "on",
     track1rm: formData.get("track1rm") === "on",
@@ -133,6 +136,7 @@ export async function updateExerciseAction(
       name: parsed.data.name,
       sets: parsed.data.sets,
       reps: parsed.data.reps,
+      unit: parsed.data.unit,
       tracks_load: parsed.data.tracksLoad,
       track_1rm: parsed.data.track1rm,
     })

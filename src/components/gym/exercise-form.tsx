@@ -3,7 +3,12 @@
 import { useActionState, useEffect, useState } from "react";
 import type { GymFormResult } from "@/lib/actions/gym";
 import { SpinnerIcon } from "@/components/ui/icons";
-import { NEW_ROUTINE, type MuscleGroup } from "@/lib/constants/gym";
+import {
+  EXERCISE_UNITS,
+  NEW_ROUTINE,
+  type ExerciseUnit,
+  type MuscleGroup,
+} from "@/lib/constants/gym";
 
 const initialState: GymFormResult = null;
 
@@ -26,6 +31,7 @@ export function ExerciseForm({
     name: string;
     sets: number;
     reps: number;
+    unit: ExerciseUnit;
     tracksLoad: boolean;
     track1rm: boolean;
   };
@@ -38,6 +44,7 @@ export function ExerciseForm({
     defaultValues?.routineId ?? routines[0]?.id ?? NEW_ROUTINE,
   );
   const [tracksLoad, setTracksLoad] = useState(defaultValues?.tracksLoad ?? true);
+  const [unit, setUnit] = useState<ExerciseUnit>(defaultValues?.unit ?? "reps");
 
   useEffect(() => {
     if (state?.status === "success") onSuccess?.();
@@ -97,6 +104,32 @@ export function ExerciseForm({
         />
       </div>
 
+      <div className="space-y-1">
+        <span className="text-sm text-zinc-400">Measured in</span>
+        <input type="hidden" name="unit" value={unit} />
+        <div className="grid grid-cols-2 gap-2">
+          {EXERCISE_UNITS.map((u) => (
+            <button
+              key={u.value}
+              type="button"
+              onClick={() => setUnit(u.value)}
+              aria-pressed={unit === u.value}
+              className={`rounded-lg border px-2 py-2 text-sm transition ${
+                unit === u.value
+                  ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
+                  : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+              }`}
+            >
+              {u.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-zinc-500">
+          Seconds is for timed exercises — a plank or a dead hang, logged as
+          a duration instead of a rep count.
+        </p>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label htmlFor="sets" className="text-sm text-zinc-400">
@@ -115,15 +148,15 @@ export function ExerciseForm({
         </div>
         <div className="space-y-1">
           <label htmlFor="reps" className="text-sm text-zinc-400">
-            Reps
+            {unit === "seconds" ? "Seconds" : "Reps"}
           </label>
           <input
             id="reps"
             name="reps"
             type="number"
             min={1}
-            max={100}
-            defaultValue={defaultValues?.reps ?? 10}
+            max={unit === "seconds" ? 600 : 100}
+            defaultValue={defaultValues?.reps ?? (unit === "seconds" ? 30 : 10)}
             required
             className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
           />
@@ -141,7 +174,7 @@ export function ExerciseForm({
         Track weight for this exercise
       </label>
 
-      {tracksLoad && (
+      {tracksLoad && unit === "reps" && (
         <label className="flex items-center gap-2 text-sm text-zinc-300">
           <input
             type="checkbox"

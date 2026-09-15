@@ -96,6 +96,7 @@ export type Database = {
           sets: number
           track_1rm: boolean
           tracks_load: boolean
+          unit: Database["public"]["Enums"]["exercise_unit"]
           updated_at: string
           user_id: string
         }
@@ -110,6 +111,7 @@ export type Database = {
           sets: number
           track_1rm?: boolean
           tracks_load?: boolean
+          unit?: Database["public"]["Enums"]["exercise_unit"]
           updated_at?: string
           user_id: string
         }
@@ -124,6 +126,7 @@ export type Database = {
           sets?: number
           track_1rm?: boolean
           tracks_load?: boolean
+          unit?: Database["public"]["Enums"]["exercise_unit"]
           updated_at?: string
           user_id?: string
         }
@@ -200,6 +203,7 @@ export type Database = {
     }
     Enums: {
       execution_type: "straight" | "mini_pause" | "rest_pause"
+      exercise_unit: "reps" | "seconds"
       modality: "gym" | "swimming" | "running"
       muscle_group:
         | "back"
@@ -347,6 +351,7 @@ export const Constants = {
   public: {
     Enums: {
       execution_type: ["straight", "mini_pause", "rest_pause"],
+      exercise_unit: ["reps", "seconds"],
       modality: ["gym", "swimming", "running"],
       muscle_group: [
         "back",

@@ -51,15 +51,20 @@ export function progressHistory(
     .map(([date, value]) => ({ date, value }));
 }
 
-/** Which unit a routine's combined chart is in: "kg" if every exercise
- * in it tracks load, "reps" if none do, or "" (a mixed, unitless count)
- * when it has both kinds. */
-export function routineUnit(exercises: Exercise[]): "kg" | "reps" | "" {
+/** Which unit a routine's combined chart is in: "kg" if every exercise in
+ * it tracks load (load is the more meaningful axis regardless of rep
+ * unit); otherwise "reps" or "secs" if every non-load exercise shares
+ * that same unit; or "" (a mixed, unitless count) for anything else. */
+export function routineUnit(exercises: Exercise[]): "kg" | "reps" | "secs" | "" {
   if (exercises.length === 0) return "";
   const allTrackLoad = exercises.every((e) => e.tracks_load);
   if (allTrackLoad) return "kg";
-  const noneTrackLoad = exercises.every((e) => !e.tracks_load);
-  return noneTrackLoad ? "reps" : "";
+  const nonLoad = exercises.filter((e) => !e.tracks_load);
+  if (nonLoad.length !== exercises.length) return "";
+  const allSeconds = nonLoad.every((e) => e.unit === "seconds");
+  if (allSeconds) return "secs";
+  const allReps = nonLoad.every((e) => e.unit === "reps");
+  return allReps ? "reps" : "";
 }
 
 /** Same idea as progressHistory, but combined across every exercise in a
@@ -97,13 +102,16 @@ export type ExerciseOneRepMax = {
   oneRepMax: number;
 };
 
-/** Each load-tracking exercise's best-ever estimated 1RM, highest first. */
+/** Each load-tracking exercise's best-ever estimated 1RM, highest first.
+ * Epley's formula assumes a rep count, so a timed (seconds) exercise is
+ * excluded even if it happens to track load — a weighted plank has no
+ * meaningful "1 rep max". */
 export function bestOneRepMaxPerExercise(
   exercises: Exercise[],
   sets: ExerciseSet[],
 ): ExerciseOneRepMax[] {
   return exercises
-    .filter((e) => e.tracks_load)
+    .filter((e) => e.tracks_load && e.unit === "reps")
     .map((exercise) => {
       const best = sets
         .filter((s) => s.exercise_id === exercise.id && s.weight_kg != null)
@@ -145,7 +153,7 @@ export function totalStrengthHistory(
   sets: ExerciseSet[],
 ): ProgressPoint[] {
   const loadExerciseIds = new Set(
-    exercises.filter((e) => e.tracks_load).map((e) => e.id),
+    exercises.filter((e) => e.tracks_load && e.unit === "reps").map((e) => e.id),
   );
   const relevant = sets.filter(
     (s) => loadExerciseIds.has(s.exercise_id) && s.weight_kg != null,

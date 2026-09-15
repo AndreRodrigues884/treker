@@ -30,6 +30,15 @@ export const DIFFICULTIES = [
   { value: "hard", label: "Hard", tint: "bg-red-500/15 text-red-300" },
 ] as const;
 
+/** What the exercise's numeric target/log (`reps`) actually counts —
+ * repetitions for most exercises, but a plank/dead-hang/wall-sit is timed
+ * instead. `shortLabel` is what's appended straight onto a number (e.g.
+ * "45s"); `label` is the full word used in forms/dropdowns. */
+export const EXERCISE_UNITS = [
+  { value: "reps", label: "Reps", shortLabel: "reps" },
+  { value: "seconds", label: "Seconds", shortLabel: "s" },
+] as const;
+
 /** Sentinel value for "create a new routine" in the exercise form's
  * routine picker — never a real routine id, so it can't collide. */
 export const NEW_ROUTINE = "__new__";
@@ -38,3 +47,4 @@ export type MuscleGroup = (typeof MUSCLE_GROUPS)[number]["value"];
 export type MuscleGroupOption = (typeof MUSCLE_GROUPS)[number];
 export type ExecutionType = (typeof EXECUTION_TYPES)[number]["value"];
 export type SetDifficulty = (typeof DIFFICULTIES)[number]["value"];
+export type ExerciseUnit = (typeof EXERCISE_UNITS)[number]["value"];

@@ -49,6 +49,7 @@ function makeExercise(overrides: Partial<Exercise>): Exercise {
     name: "Bench Press",
     sets: 3,
     reps: 10,
+    unit: "reps",
     tracks_load: true,
     created_at: "",
     updated_at: "",
@@ -159,6 +160,17 @@ describe("bestOneRepMaxPerExercise / totalStrength", () => {
       { exerciseId: "bench", exerciseName: "Bench", oneRepMax: estimatedOneRepMax(100, 5) },
     ]);
     expect(totalStrength(perExercise)).toBeCloseTo(estimatedOneRepMax(100, 5));
+  });
+
+  it("excludes timed (seconds) exercises even if they track load", () => {
+    const plank = makeExercise({
+      id: "plank",
+      name: "Weighted Plank",
+      tracks_load: true,
+      unit: "seconds",
+    });
+    const sets = [makeSet({ exercise_id: "plank", weight_kg: 20, reps: 60 })];
+    expect(bestOneRepMaxPerExercise([plank], sets)).toEqual([]);
   });
 });
 
@@ -278,6 +290,21 @@ describe("routineUnit", () => {
       routineUnit([
         makeExercise({ id: "a", tracks_load: true }),
         makeExercise({ id: "b", tracks_load: false }),
+      ]),
+    ).toBe("");
+  });
+
+  it("is secs when no exercise tracks load and all are timed", () => {
+    expect(
+      routineUnit([makeExercise({ tracks_load: false, unit: "seconds" })]),
+    ).toBe("secs");
+  });
+
+  it("is unitless when non-load exercises mix reps and seconds", () => {
+    expect(
+      routineUnit([
+        makeExercise({ id: "a", tracks_load: false, unit: "reps" }),
+        makeExercise({ id: "b", tracks_load: false, unit: "seconds" }),
       ]),
     ).toBe("");
   });

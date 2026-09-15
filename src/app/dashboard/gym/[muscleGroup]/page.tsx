@@ -26,7 +26,12 @@ export function generateStaticParams() {
   return MUSCLE_GROUPS.map((m) => ({ muscleGroup: m.value }));
 }
 
-const UNIT_LABEL = { kg: "Volume", reps: "Reps", "": "Activity" } as const;
+const UNIT_LABEL = {
+  kg: "Volume",
+  reps: "Reps",
+  secs: "Duration",
+  "": "Activity",
+} as const;
 
 export default async function MuscleGroupPage({
   params,
@@ -170,7 +175,10 @@ async function RoutineCharts({
                 {UNIT_LABEL[unit]} per session · {points.length}{" "}
                 {points.length === 1 ? "session" : "sessions"}
               </p>
-              <ProgressChart points={points} unit={unit === "kg" ? "kg" : ""} />
+              <ProgressChart
+                points={points}
+                unit={unit === "kg" ? "kg" : unit === "secs" ? "s" : ""}
+              />
             </div>
 
             <SortableExerciseList

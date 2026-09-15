@@ -12,6 +12,12 @@ import { ExerciseForm } from "@/components/gym/exercise-form";
 import { useWorkoutSession } from "@/components/gym/session-context";
 import { GripIcon, PencilIcon, TrashIcon } from "@/components/ui/icons";
 
+/** "10 reps" or "30s" — this exercise's own unit decides how its target
+ * and logged sets are read. */
+function formatCount(value: number, unit: Exercise["unit"]) {
+  return unit === "seconds" ? `${value}s` : `${value} reps`;
+}
+
 export function ExerciseCard({
   exercise,
   sets,
@@ -100,13 +106,14 @@ export function ExerciseCard({
 
   function handleConfirm() {
     if (activeSet === null) return;
+    const isTimed = exercise.unit === "seconds";
     if (reps.trim() === "") {
-      setError("Enter the reps you did.");
+      setError(isTimed ? "Enter the seconds you held." : "Enter the reps you did.");
       return;
     }
     const parsedReps = Number(reps);
     if (!Number.isInteger(parsedReps) || parsedReps < 0) {
-      setError("Enter a valid number of reps.");
+      setError(isTimed ? "Enter a valid number of seconds." : "Enter a valid number of reps.");
       return;
     }
     let parsedWeight: number | null = null;
@@ -140,6 +147,7 @@ export function ExerciseCard({
           name: exercise.name,
           sets: exercise.sets,
           reps: exercise.reps,
+          unit: exercise.unit,
           tracksLoad: exercise.tracks_load,
           track1rm: exercise.track_1rm,
         }}
@@ -156,7 +164,7 @@ export function ExerciseCard({
         <div>
           <h3 className="font-bold text-zinc-100">{exercise.name}</h3>
           <p className="text-sm text-zinc-500">
-            {exercise.sets} × {exercise.reps} reps
+            {exercise.sets} × {formatCount(exercise.reps, exercise.unit)}
           </p>
         </div>
         <div className="flex flex-col items-end gap-6 text-zinc-500">
@@ -233,7 +241,7 @@ export function ExerciseCard({
                 {exercise.tracks_load && lastSetForActive.weight_kg != null
                   ? `${lastSetForActive.weight_kg}kg · `
                   : ""}
-                {lastSetForActive.reps} reps
+                {formatCount(lastSetForActive.reps, exercise.unit)}
                 <DifficultyPill value={lastSetForActive.difficulty} />
               </span>
             )}
@@ -261,7 +269,7 @@ export function ExerciseCard({
               </label>
             )}
             <label className="space-y-1 text-sm text-zinc-400">
-              Reps done
+              {exercise.unit === "seconds" ? "Seconds held" : "Reps done"}
               <input
                 type="number"
                 min={0}
