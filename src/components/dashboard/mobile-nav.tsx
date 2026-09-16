@@ -18,7 +18,7 @@ export function MobileNav({
 
   return (
     <>
-      <header className="flex items-center justify-between border-b border-slate-700 bg-slate-900/80 px-4 py-3 md:hidden">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-700 bg-slate-900/80 px-4 py-3 backdrop-blur md:hidden">
         <span className="flex items-center gap-2 text-base font-bold tracking-tight">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-violet-500">
             <LogoMarkIcon className="h-4 w-4 text-white" />
