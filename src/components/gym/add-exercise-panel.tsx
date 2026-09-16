@@ -20,7 +20,7 @@ export function AddExercisePanel({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-xl border border-dashed border-zinc-700 px-4 py-3 text-sm text-zinc-400 transition hover:border-zinc-500 hover:text-zinc-200"
+        className="flex items-center gap-2 rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm text-zinc-400 transition hover:border-slate-400 hover:text-zinc-200"
       >
         <PlusIcon className="h-4 w-4" />
         Add exercise

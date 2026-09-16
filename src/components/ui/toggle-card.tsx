@@ -21,7 +21,7 @@ export function ToggleCard({
       className={`flex flex-col items-center gap-1.5 rounded-2xl border text-sm font-medium transition ${
         selected
           ? "border-indigo-400 bg-indigo-500/10 text-white"
-          : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+          : "border-slate-700 text-zinc-400 hover:border-slate-500"
       } ${className}`}
     >
       {icon && <span className="text-xl leading-none">{icon}</span>}

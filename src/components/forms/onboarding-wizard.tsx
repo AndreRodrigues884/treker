@@ -68,7 +68,7 @@ export function OnboardingWizard({
                 ? "bg-indigo-400"
                 : i < step
                   ? "bg-indigo-400/50"
-                  : "bg-zinc-800"
+                  : "bg-slate-700"
             }`}
           />
         ))}
@@ -143,7 +143,7 @@ export function OnboardingWizard({
           <button
             type="button"
             onClick={() => setStep(0)}
-            className="rounded-xl border border-zinc-800 px-6 py-3 text-sm font-semibold text-zinc-300 transition hover:border-zinc-600"
+            className="rounded-xl border border-slate-700 px-6 py-3 text-sm font-semibold text-zinc-300 transition hover:border-slate-500"
           >
             Back
           </button>

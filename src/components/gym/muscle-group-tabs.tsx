@@ -32,7 +32,7 @@ export function MuscleGroupTabs({
           className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
             m.value === active
               ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
-              : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+              : "border-slate-700 text-zinc-400 hover:border-slate-500"
           }`}
         >
           <MuscleGroupIcon group={m.value} className="h-4 w-4" />

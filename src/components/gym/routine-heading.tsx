@@ -49,7 +49,7 @@ export function RoutineHeading({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         autoFocus
-        className="rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+        className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-zinc-100 outline-none focus:border-indigo-400"
       />
       <button
         type="button"

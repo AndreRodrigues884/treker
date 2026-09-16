@@ -16,7 +16,7 @@ export function ModalityCard({
   return (
     <Link
       href={href}
-      className="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 transition hover:border-zinc-600"
+      className="flex flex-col gap-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4 transition hover:border-slate-500"
     >
       <div className="flex items-center gap-2">
         <span

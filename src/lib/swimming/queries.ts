@@ -1,0 +1,17 @@
+import { cache } from "react";
+import { createClient } from "@/lib/supabase/server";
+
+/** Every time the user has ever logged, across every stroke/distance —
+ * small enough (one row per session) that fetching it all at once and
+ * grouping client-side, same as Gym's cross-cutting queries, is simpler
+ * than a query per event. */
+export const getSwimTimes = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("swim_times")
+    .select("*")
+    .eq("user_id", userId)
+    .order("session_date", { ascending: true })
+    .order("created_at", { ascending: true });
+  return data ?? [];
+});

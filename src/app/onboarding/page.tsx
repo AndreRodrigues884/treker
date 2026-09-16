@@ -11,7 +11,7 @@ export default async function OnboardingPage() {
   if (profile?.onboarding_completed) redirect("/dashboard");
 
   return (
-    <main className="relative flex h-dvh flex-col overflow-hidden bg-slate-950 px-6 py-6 text-zinc-100">
+    <main className="relative flex h-dvh flex-col overflow-hidden bg-slate-900 px-6 py-6 text-zinc-100">
       <div className="pointer-events-none absolute -top-32 -left-24 h-80 w-80 rounded-full bg-indigo-600/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-24 h-80 w-80 rounded-full bg-violet-600/20 blur-3xl" />
 

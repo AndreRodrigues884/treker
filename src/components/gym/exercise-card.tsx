@@ -69,12 +69,12 @@ export function ExerciseCard({
     return p ? String(p.reps) : "";
   }
   function difficultyFor(setNumber: number): SetDifficulty {
-    return getPendingSet(exercise.id, setNumber)?.difficulty ?? "medium";
+    return getPendingSet(exercise.id, setNumber)?.difficulty ?? "easy";
   }
 
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState(String(exercise.reps));
-  const [difficulty, setDifficulty] = useState<SetDifficulty>("medium");
+  const [difficulty, setDifficulty] = useState<SetDifficulty>("easy");
 
   // Adjust state during render when the selected set changes — React's
   // recommended alternative to an effect for this ("reset derived state
@@ -159,7 +159,7 @@ export function ExerciseCard({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+    <div className="space-y-4 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="font-bold text-zinc-100">{exercise.name}</h3>
@@ -208,8 +208,11 @@ export function ExerciseCard({
 
       <div className="flex flex-wrap gap-2">
         {Array.from({ length: exercise.sets }, (_, i) => i + 1).map((n) => {
-          const staged = !!getPendingSet(exercise.id, n);
+          const pendingSet = getPendingSet(exercise.id, n);
           const active = n === activeSet;
+          const difficultyBorder = pendingSet
+            ? DIFFICULTIES.find((d) => d.value === pendingSet.difficulty)?.border
+            : undefined;
           return (
             <button
               key={n}
@@ -218,9 +221,7 @@ export function ExerciseCard({
               className={`flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition ${
                 active
                   ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
-                  : staged
-                    ? "border-amber-700 bg-amber-500/10 text-amber-400"
-                    : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                  : (difficultyBorder ?? "border-slate-700 text-zinc-400 hover:border-slate-500")
               }`}
             >
               {n}
@@ -231,7 +232,7 @@ export function ExerciseCard({
 
       {activeSet !== null && (
         <div className="space-y-4">
-          <div className="h-px bg-zinc-800" />
+          <div className="h-px bg-slate-700" />
 
           <div className="flex items-center justify-between text-sm">
             <span className="text-zinc-400">Set {activeSet}</span>
@@ -264,7 +265,7 @@ export function ExerciseCard({
                       ? String(lastSetForActive.weight_kg)
                       : undefined
                   }
-                  className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
+                  className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
                 />
               </label>
             )}
@@ -280,7 +281,7 @@ export function ExerciseCard({
                     ? String(lastSetForActive.reps)
                     : String(exercise.reps)
                 }
-                className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
+                className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
               />
             </label>
           </div>
@@ -294,7 +295,7 @@ export function ExerciseCard({
                 className={`rounded-lg border px-2 py-2 text-sm transition ${
                   difficulty === d.value
                     ? `border-transparent ${d.tint}`
-                    : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                    : "border-slate-700 text-zinc-400 hover:border-slate-500"
                 }`}
               >
                 {d.label}
@@ -312,7 +313,7 @@ export function ExerciseCard({
             <button
               type="button"
               onClick={handleCancel}
-              className="flex-1 rounded-lg border border-zinc-800 px-2 py-2 text-sm text-zinc-300 transition hover:border-zinc-600"
+              className="flex-1 rounded-lg border border-slate-700 px-2 py-2 text-sm text-zinc-300 transition hover:border-slate-500"
             >
               Cancel
             </button>

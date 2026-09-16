@@ -13,7 +13,7 @@ export function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-6 py-16 text-zinc-100">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-900 px-6 py-16 text-zinc-100">
       <div className="pointer-events-none absolute -top-32 -left-24 h-80 w-80 rounded-full bg-indigo-600/30 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-24 h-80 w-80 rounded-full bg-violet-600/30 blur-3xl" />
 
@@ -28,7 +28,7 @@ export function AuthLayout({
           Treker
         </Link>
 
-        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-8 shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <div className="rounded-2xl border border-slate-700/80 bg-slate-800/40 p-8 shadow-2xl shadow-black/40 backdrop-blur-xl">
           <div className="mb-6 space-y-1 text-center">
             <h1 className="text-2xl font-bold">{title}</h1>
             <p className="text-sm text-zinc-400">{subtitle}</p>

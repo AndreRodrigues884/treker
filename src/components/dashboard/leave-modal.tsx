@@ -18,7 +18,7 @@ export function LeaveModal({
         onClick={onCancel}
         className="absolute inset-0 bg-black/70"
       />
-      <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl">
+      <div className="relative w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-2xl">
         <h2 className="text-base font-bold text-zinc-100">
           Leave without saving?
         </h2>
@@ -30,7 +30,7 @@ export function LeaveModal({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 rounded-lg border border-zinc-800 px-3 py-2 text-sm text-zinc-300 transition hover:border-zinc-600"
+            className="flex-1 rounded-lg border border-slate-700 px-3 py-2 text-sm text-zinc-300 transition hover:border-slate-500"
           >
             Stay
           </button>

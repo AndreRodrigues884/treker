@@ -75,7 +75,7 @@ async function ForcaTotalSection({ userId }: { userId: string }) {
     strengthHistory.length > 1 ? strength - strengthHistory[0].value : 0;
 
   return (
-    <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+    <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="font-semibold text-zinc-100">Força Total</h2>
@@ -200,7 +200,7 @@ function StatCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+    <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
       <div>
         <h2 className="font-semibold text-zinc-100">{title}</h2>
         <p className="text-xs text-zinc-500">{subtitle}</p>

@@ -21,7 +21,7 @@ export function MuscleGroupVolumeChart({ data }: { data: MuscleGroupVolume[] }) 
               <MuscleGroupIcon group={entry.value} className="h-3.5 w-3.5" />
               {entry.label}
             </span>
-            <div className="h-2 flex-1 rounded-full bg-zinc-800">
+            <div className="h-2 flex-1 rounded-full bg-slate-700">
               <div
                 className={`h-2 rounded-full ${entry.barTint}`}
                 style={{ width: `${pct}%` }}

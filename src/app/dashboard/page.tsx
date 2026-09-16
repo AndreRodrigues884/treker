@@ -3,6 +3,8 @@ import type { User } from "@supabase/supabase-js";
 import { getCurrentUser, getProfile, getDisplayName } from "@/lib/supabase/queries";
 import { getAllExerciseSets } from "@/lib/gym/queries";
 import { lastSessionDate, sessionsThisWeek, setsThisWeek } from "@/lib/gym/derive";
+import { getSwimTimes } from "@/lib/swimming/queries";
+import { swimTimesThisWeek } from "@/lib/swimming/derive";
 import { MODALITIES } from "@/lib/constants/onboarding";
 import { Greeting } from "@/components/dashboard/greeting";
 import { ModalityCard } from "@/components/dashboard/modality-card";
@@ -40,11 +42,17 @@ export default async function DashboardPage() {
 async function OverviewHero({ user }: { user: User | null }) {
   const profile = user ? await getProfile(user.id) : null;
   const tracksGym = profile?.modalities.includes("gym") ?? false;
-  const gymSets = user && tracksGym ? await getAllExerciseSets(user.id) : [];
+  const tracksSwimming = profile?.modalities.includes("swimming") ?? false;
+
+  const [gymSets, swimTimes] = await Promise.all([
+    user && tracksGym ? getAllExerciseSets(user.id) : Promise.resolve([]),
+    user && tracksSwimming ? getSwimTimes(user.id) : Promise.resolve([]),
+  ]);
   const workouts = sessionsThisWeek(gymSets);
+  const swims = swimTimesThisWeek(swimTimes);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-linear-to-br from-slate-900 via-indigo-950/50 to-slate-900 p-6">
+    <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-linear-to-br from-slate-800 via-indigo-900/50 to-slate-800 p-6">
       <div className="pointer-events-none absolute -top-16 -left-12 h-56 w-56 rounded-full bg-indigo-600/30 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-20 -right-10 h-56 w-56 rounded-full bg-fuchsia-600/20 blur-3xl" />
 
@@ -56,14 +64,28 @@ async function OverviewHero({ user }: { user: User | null }) {
           )}
         </div>
 
-        {tracksGym && (
-          <div className="text-left sm:text-right">
-            <p className="bg-linear-to-r from-amber-300 via-orange-400 to-pink-500 bg-clip-text text-4xl font-bold text-transparent">
-              {workouts}
-            </p>
-            <p className="text-sm text-zinc-400">
-              {workouts === 1 ? "workout" : "workouts"} this week
-            </p>
+        {(tracksGym || tracksSwimming) && (
+          <div className="flex flex-wrap gap-6">
+            {tracksGym && (
+              <div className="text-left sm:text-right">
+                <p className="bg-linear-to-r from-amber-300 via-orange-400 to-pink-500 bg-clip-text text-4xl font-bold text-transparent">
+                  {workouts}
+                </p>
+                <p className="text-sm text-zinc-400">
+                  {workouts === 1 ? "workout" : "workouts"} this week
+                </p>
+              </div>
+            )}
+            {tracksSwimming && (
+              <div className="text-left sm:text-right">
+                <p className="bg-linear-to-r from-cyan-300 via-cyan-400 to-blue-500 bg-clip-text text-4xl font-bold text-transparent">
+                  {swims}
+                </p>
+                <p className="text-sm text-zinc-400">
+                  {swims === 1 ? "time" : "times"} logged this week
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -75,8 +97,12 @@ async function ModalityGrid({ userId }: { userId: string | undefined }) {
   const profile = userId ? await getProfile(userId) : null;
   const tabs = MODALITIES.filter((m) => profile?.modalities.includes(m.value));
   const tracksGym = tabs.some((t) => t.value === "gym");
+  const tracksSwimming = tabs.some((t) => t.value === "swimming");
 
-  const gymSets = userId && tracksGym ? await getAllExerciseSets(userId) : [];
+  const [gymSets, swimTimes] = await Promise.all([
+    userId && tracksGym ? getAllExerciseSets(userId) : Promise.resolve([]),
+    userId && tracksSwimming ? getSwimTimes(userId) : Promise.resolve([]),
+  ]);
 
   return (
     <div className="grid gap-3 sm:grid-cols-3">
@@ -99,6 +125,34 @@ async function ModalityGrid({ userId }: { userId: string | undefined }) {
                 </>
               ) : (
                 "No sessions logged yet"
+              )}
+            </ModalityCard>
+          );
+        }
+
+        if (tab.value === "swimming") {
+          const last = swimTimes.length
+            ? swimTimes.reduce(
+                (latest, t) => (t.session_date > latest ? t.session_date : latest),
+                swimTimes[0].session_date,
+              )
+            : null;
+          return (
+            <ModalityCard
+              key={tab.value}
+              href="/dashboard/swimming"
+              icon={tab.icon}
+              tint={tab.tint}
+              label={tab.label}
+            >
+              {last ? (
+                <>
+                  Last time logged: {formatFriendlyDate(last)}
+                  <br />
+                  {swimTimes.length} {swimTimes.length === 1 ? "time" : "times"} total
+                </>
+              ) : (
+                "No times logged yet"
               )}
             </ModalityCard>
           );

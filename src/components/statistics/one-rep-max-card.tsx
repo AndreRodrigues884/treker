@@ -21,7 +21,7 @@ export function OneRepMaxCard({
   const selected = exercises.find((e) => e.exerciseId === selectedId);
 
   return (
-    <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+    <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
       <div>
         <h2 className="font-semibold text-zinc-100">1RM Estimado</h2>
         <p className="text-xs text-zinc-500">
@@ -44,7 +44,7 @@ export function OneRepMaxCard({
                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
                   e.exerciseId === selected.exerciseId
                     ? "border-zinc-100 bg-zinc-100 text-zinc-950"
-                    : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                    : "border-slate-700 text-zinc-400 hover:border-slate-500"
                 }`}
               >
                 {e.exerciseName}

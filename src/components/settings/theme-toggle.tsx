@@ -41,7 +41,7 @@ export function ThemeToggle() {
               className={`flex flex-col items-center gap-1.5 rounded-2xl border px-3 py-3 text-sm font-medium transition ${
                 active
                   ? "border-indigo-400 bg-indigo-500/10 text-white"
-                  : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                  : "border-slate-700 text-zinc-400 hover:border-slate-500"
               }`}
             >
               <Icon className="h-5 w-5" />

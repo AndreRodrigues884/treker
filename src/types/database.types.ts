@@ -194,6 +194,39 @@ export type Database = {
         }
         Relationships: []
       }
+      swim_times: {
+        Row: {
+          created_at: string
+          distance_m: number
+          id: string
+          session_date: string
+          stroke: Database["public"]["Enums"]["swim_stroke"]
+          time_seconds: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance_m: number
+          id?: string
+          session_date?: string
+          stroke: Database["public"]["Enums"]["swim_stroke"]
+          time_seconds: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          distance_m?: number
+          id?: string
+          session_date?: string
+          stroke?: Database["public"]["Enums"]["swim_stroke"]
+          time_seconds?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -214,6 +247,7 @@ export type Database = {
         | "triceps"
         | "core"
       set_difficulty: "easy" | "medium" | "hard"
+      swim_stroke: "freestyle" | "backstroke" | "breaststroke" | "butterfly"
       training_goal:
         | "build_muscle"
         | "lose_weight"
@@ -363,6 +397,7 @@ export const Constants = {
         "core",
       ],
       set_difficulty: ["easy", "medium", "hard"],
+      swim_stroke: ["freestyle", "backstroke", "breaststroke", "butterfly"],
       training_goal: [
         "build_muscle",
         "lose_weight",

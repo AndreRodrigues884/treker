@@ -25,9 +25,24 @@ export const EXECUTION_TYPES = [
 ] as const;
 
 export const DIFFICULTIES = [
-  { value: "easy", label: "Easy", tint: "bg-emerald-500/15 text-emerald-300" },
-  { value: "medium", label: "Medium", tint: "bg-amber-500/15 text-amber-300" },
-  { value: "hard", label: "Hard", tint: "bg-red-500/15 text-red-300" },
+  {
+    value: "easy",
+    label: "Easy",
+    tint: "bg-emerald-500/15 text-emerald-300",
+    border: "border-emerald-700 bg-emerald-500/10 text-emerald-400",
+  },
+  {
+    value: "medium",
+    label: "Medium",
+    tint: "bg-amber-500/15 text-amber-300",
+    border: "border-amber-700 bg-amber-500/10 text-amber-400",
+  },
+  {
+    value: "hard",
+    label: "Hard",
+    tint: "bg-red-500/15 text-red-300",
+    border: "border-red-700 bg-red-500/10 text-red-400",
+  },
 ] as const;
 
 /** What the exercise's numeric target/log (`reps`) actually counts —

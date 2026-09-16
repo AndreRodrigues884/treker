@@ -20,7 +20,7 @@ export function AddMuscleGroupButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-zinc-700 px-4 py-6 text-zinc-400 transition hover:border-zinc-500 hover:text-zinc-200"
+        className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-600 px-4 py-6 text-zinc-400 transition hover:border-slate-400 hover:text-zinc-200"
       >
         <PlusIcon className="h-6 w-6" />
         <span className="text-sm font-medium">Add muscle group</span>
@@ -29,7 +29,7 @@ export function AddMuscleGroupButton({
   }
 
   return (
-    <div className="col-span-full space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+    <div className="col-span-full space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-zinc-300">
           Pick a muscle group
@@ -47,7 +47,7 @@ export function AddMuscleGroupButton({
           <Link
             key={m.value}
             href={`/dashboard/gym/${m.value}`}
-            className="flex flex-col items-center gap-2 rounded-xl border border-zinc-800 px-4 py-4 text-center transition hover:border-zinc-600"
+            className="flex flex-col items-center gap-2 rounded-xl border border-slate-700 px-4 py-4 text-center transition hover:border-slate-500"
           >
             <span
               className={`flex h-9 w-9 items-center justify-center rounded-lg ${m.tint}`}

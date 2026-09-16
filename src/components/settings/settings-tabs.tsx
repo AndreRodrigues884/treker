@@ -16,7 +16,7 @@ export function SettingsTabs({ tabs }: { tabs: SettingsTab[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-2 border-b border-zinc-800 pb-3">
+      <div className="flex flex-wrap gap-2 border-b border-slate-700 pb-3">
         {tabs.map((tab) => {
           const active = tab.id === activeId;
           return (
@@ -27,7 +27,7 @@ export function SettingsTabs({ tabs }: { tabs: SettingsTab[] }) {
               className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${
                 active
                   ? "bg-indigo-500/15 font-medium text-indigo-300"
-                  : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+                  : "text-zinc-400 hover:bg-slate-800 hover:text-zinc-200"
               }`}
             >
               <span className="[&>svg]:h-4 [&>svg]:w-4">{tab.icon}</span>

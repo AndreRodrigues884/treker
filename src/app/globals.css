@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
-/* App is dark-only by design for now — no light theme, no toggle. */
+/* App is dark-only by design for now — no light theme, no toggle.
+   --background matches Tailwind's slate-900 (#0f172a), the same base
+   tier every bg-slate-900 surface in the app now uses — lighter and
+   more visibly blue than the near-black it replaced. */
 :root {
-  --background: #05070d;
+  --background: #0f172a;
   --foreground: #f4f4f5;
 }
 

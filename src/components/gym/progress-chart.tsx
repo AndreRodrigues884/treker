@@ -17,11 +17,13 @@ function formatDate(iso: string) {
   return `${day}/${month}`;
 }
 
-function formatValue(value: number, unit: string) {
-  const rounded = Math.round(value);
-  return rounded >= 1000
-    ? `${(rounded / 1000).toFixed(1)}k${unit}`
-    : `${rounded}${unit}`;
+function defaultFormatValue(unit: string) {
+  return (value: number) => {
+    const rounded = Math.round(value);
+    return rounded >= 1000
+      ? `${(rounded / 1000).toFixed(1)}k${unit}`
+      : `${rounded}${unit}`;
+  };
 }
 
 /** Rounds a [min, max] range out to "nice" step boundaries (1/2/5 × a
@@ -83,6 +85,7 @@ export function ProgressChart({
   points,
   unit = "",
   color = DEFAULT_COLOR,
+  formatValue,
 }: {
   points: ProgressPoint[];
   unit?: string;
@@ -90,9 +93,15 @@ export function ProgressChart({
    * accents (e.g. violet for total strength, amber for a single
    * exercise's 1RM) while sharing this one chart implementation. */
   color?: string;
+  /** Custom formatter for every number shown (ticks, the last-point
+   * label, the hover tooltip, the sr-only table) — e.g. swim times as
+   * "1:23" instead of a raw "83s". Defaults to a rounded number plus
+   * `unit`. */
+  formatValue?: (value: number) => string;
 }) {
   const gradientId = useId();
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const format = formatValue ?? defaultFormatValue(unit);
 
   if (points.length < 2) {
     const message =
@@ -100,7 +109,7 @@ export function ProgressChart({
         ? "Log at least two sessions to see your progress"
         : "1 more session to see your progress";
     return (
-      <div className="flex h-28 flex-col items-center justify-center gap-1 rounded-xl border border-zinc-800 bg-zinc-900/40 text-center">
+      <div className="flex h-28 flex-col items-center justify-center gap-1 rounded-xl border border-slate-700 bg-slate-800/40 text-center">
         <span className="text-xl">📈</span>
         <p className="px-4 text-sm text-zinc-500">{message}</p>
       </div>
@@ -179,7 +188,7 @@ export function ProgressChart({
                   className="fill-zinc-500"
                   fontSize={9}
                 >
-                  {formatValue(tick, unit)}
+                  {format(tick)}
                 </text>
               </g>
             );
@@ -238,7 +247,7 @@ export function ProgressChart({
             className="fill-zinc-300"
             fontSize={11}
           >
-            {formatValue(lastPoint.value, unit)}
+            {format(lastPoint.value)}
           </text>
 
           {labelIndices.map((i) => {
@@ -262,14 +271,14 @@ export function ProgressChart({
 
         {hovered && (
           <div
-            className="pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs shadow-lg"
+            className="pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-slate-600 bg-slate-900 px-2 py-1 text-xs shadow-lg"
             style={{
               left: `${(hovered.x / WIDTH) * 100}%`,
               top: `${(hovered.y / HEIGHT) * 100}%`,
             }}
           >
             <p className="font-semibold text-zinc-100">
-              {formatValue(hovered.value, unit)}
+              {format(hovered.value)}
             </p>
             <p className="text-zinc-500">{formatDate(hovered.date)}</p>
           </div>
@@ -285,13 +294,10 @@ export function ProgressChart({
           </tr>
         </thead>
         <tbody>
-          {points.map((p) => (
-            <tr key={p.date}>
+          {points.map((p, i) => (
+            <tr key={i}>
               <td>{p.date}</td>
-              <td>
-                {p.value}
-                {unit}
-              </td>
+              <td>{format(p.value)}</td>
             </tr>
           ))}
         </tbody>

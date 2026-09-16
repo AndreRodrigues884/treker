@@ -38,7 +38,7 @@ export default async function GymPage() {
               <Link
                 key={m.value}
                 href={`/dashboard/gym/${m.value}`}
-                className="flex flex-col items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-4 py-6 text-center transition hover:border-zinc-600"
+                className="flex flex-col items-center gap-2 rounded-2xl border border-slate-700 bg-slate-800/40 px-4 py-6 text-center transition hover:border-slate-500"
               >
                 <span
                   className={`flex h-10 w-10 items-center justify-center rounded-xl ${m.tint}`}
@@ -59,7 +59,7 @@ export default async function GymPage() {
             <Link
               key={m.value}
               href={`/dashboard/gym/${m.value}`}
-              className="flex flex-col items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-4 py-6 text-center transition hover:border-zinc-600"
+              className="flex flex-col items-center gap-2 rounded-2xl border border-slate-700 bg-slate-800/40 px-4 py-6 text-center transition hover:border-slate-500"
             >
               <span
                 className={`flex h-10 w-10 items-center justify-center rounded-xl ${m.tint}`}

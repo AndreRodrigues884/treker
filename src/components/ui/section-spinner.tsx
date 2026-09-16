@@ -13,7 +13,7 @@ export function SectionSpinner({
   return (
     <div
       role="status"
-      className={`flex min-h-28 items-center justify-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/40 text-zinc-500 ${className}`}
+      className={`flex min-h-28 items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-800/40 text-zinc-500 ${className}`}
     >
       <SpinnerIcon className="h-5 w-5" />
       <span className="text-sm">{label}</span>

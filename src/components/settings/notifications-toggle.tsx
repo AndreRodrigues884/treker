@@ -32,7 +32,7 @@ export function NotificationsToggle({
 
   return (
     <div className="max-w-sm space-y-3">
-      <div className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-300">
             <BellIcon className="h-4 w-4" />
@@ -54,7 +54,7 @@ export function NotificationsToggle({
           onClick={handleToggle}
           disabled={pending}
           className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:opacity-50 ${
-            enabled ? "bg-indigo-500" : "bg-zinc-700"
+            enabled ? "bg-indigo-500" : "bg-slate-600"
           }`}
         >
           <span

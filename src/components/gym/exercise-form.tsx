@@ -54,7 +54,7 @@ export function ExerciseForm({
   return (
     <form
       action={formAction}
-      className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4"
+      className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/60 p-4"
     >
       <input type="hidden" name="muscleGroup" value={muscleGroup} />
 
@@ -67,7 +67,7 @@ export function ExerciseForm({
           name="routineId"
           value={selectedRoutine}
           onChange={(e) => setSelectedRoutine(e.target.value)}
-          className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
         >
           {routines.map((r) => (
             <option key={r.id} value={r.id}>
@@ -82,7 +82,7 @@ export function ExerciseForm({
             placeholder="e.g. Legs A"
             defaultValue={`Workout ${routines.length + 1}`}
             required
-            className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
           />
         )}
         <p className="text-xs text-zinc-500">
@@ -100,7 +100,7 @@ export function ExerciseForm({
           name="name"
           defaultValue={defaultValues?.name}
           required
-          className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
         />
       </div>
 
@@ -117,7 +117,7 @@ export function ExerciseForm({
               className={`rounded-lg border px-2 py-2 text-sm transition ${
                 unit === u.value
                   ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
-                  : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                  : "border-slate-700 text-zinc-400 hover:border-slate-500"
               }`}
             >
               {u.label}
@@ -143,7 +143,7 @@ export function ExerciseForm({
             max={20}
             defaultValue={defaultValues?.sets ?? 3}
             required
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
           />
         </div>
         <div className="space-y-1">
@@ -158,7 +158,7 @@ export function ExerciseForm({
             max={unit === "seconds" ? 600 : 100}
             defaultValue={defaultValues?.reps ?? (unit === "seconds" ? 30 : 10)}
             required
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400"
           />
         </div>
       </div>
@@ -169,7 +169,7 @@ export function ExerciseForm({
           name="tracksLoad"
           checked={tracksLoad}
           onChange={(e) => setTracksLoad(e.target.checked)}
-          className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 accent-indigo-500"
+          className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-indigo-500"
         />
         Track weight for this exercise
       </label>
@@ -180,7 +180,7 @@ export function ExerciseForm({
             type="checkbox"
             name="track1rm"
             defaultChecked={defaultValues?.track1rm ?? true}
-            className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 accent-indigo-500"
+            className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-indigo-500"
           />
           Show this exercise in the 1RM Estimado chart
         </label>
@@ -197,7 +197,7 @@ export function ExerciseForm({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-zinc-800 px-4 py-2 text-sm text-zinc-300 transition hover:border-zinc-600"
+            className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-zinc-300 transition hover:border-slate-500"
           >
             Cancel
           </button>

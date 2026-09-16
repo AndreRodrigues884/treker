@@ -1,6 +1,6 @@
 export function PrivacyPolicy() {
   return (
-    <div className="max-w-2xl space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 text-sm leading-relaxed text-zinc-400">
+    <div className="max-w-2xl space-y-4 rounded-2xl border border-slate-700 bg-slate-800/40 p-5 text-sm leading-relaxed text-zinc-400">
       <div>
         <h3 className="mb-1 text-sm font-semibold text-zinc-100">
           What we store

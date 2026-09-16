@@ -9,7 +9,7 @@ type FieldProps = React.InputHTMLAttributes<HTMLInputElement> & {
 };
 
 const inputClass =
-  "w-full rounded-xl border border-zinc-800 bg-zinc-900/60 py-3 pl-11 pr-4 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20";
+  "w-full rounded-xl border border-slate-700 bg-slate-800/60 py-3 pl-11 pr-4 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20";
 
 export function TextField({ label, icon, id, ...props }: FieldProps) {
   const generatedId = useId();

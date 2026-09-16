@@ -63,7 +63,7 @@ export function SidebarContent({
       href: "/dashboard/settings",
       label: "Settings",
       icon: "⚙️",
-      tint: "bg-linear-to-br from-zinc-500/25 to-zinc-500/5",
+      tint: "bg-linear-to-br from-slate-500/25 to-slate-500/5",
     },
   ];
 
@@ -86,7 +86,7 @@ export function SidebarContent({
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="shrink-0 rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-900"
+            className="shrink-0 rounded-lg p-1.5 text-zinc-400 hover:bg-slate-800"
           >
             <XIcon className="h-5 w-5" />
           </button>
@@ -111,7 +111,7 @@ export function SidebarContent({
               className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
                 active
                   ? "bg-indigo-500/15 font-medium text-indigo-300"
-                  : "text-zinc-300 hover:bg-zinc-900"
+                  : "text-zinc-300 hover:bg-slate-800"
               }`}
             >
               <span
@@ -125,7 +125,7 @@ export function SidebarContent({
         })}
       </nav>
 
-      <div className="mt-auto space-y-2 border-t border-zinc-800 pt-4">
+      <div className="mt-auto space-y-2 border-t border-slate-700 pt-4">
         {goalLabel && (
           <p className="truncate px-1 text-xs text-zinc-500">🎯 {goalLabel}</p>
         )}

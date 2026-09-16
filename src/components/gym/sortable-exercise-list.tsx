@@ -66,7 +66,7 @@ export function SortableExerciseList({
 
   if (items.length === 0) {
     return (
-      <p className="rounded-2xl border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">
+      <p className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-sm text-zinc-500">
         No exercises in this workout yet.
       </p>
     );

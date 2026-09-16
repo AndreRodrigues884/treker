@@ -70,7 +70,7 @@ export default async function MuscleGroupPage({
             <Link
               href="/dashboard/gym"
               aria-label="Back to muscle groups"
-              className="mt-1 shrink-0 rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-200"
+              className="mt-1 shrink-0 rounded-lg p-1.5 text-zinc-400 transition hover:bg-slate-800 hover:text-zinc-200"
             >
               <ArrowLeftIcon className="h-5 w-5" />
             </Link>
@@ -96,7 +96,7 @@ export default async function MuscleGroupPage({
         <AddExercisePanel muscleGroup={group} routines={routineList} />
 
         {routines.length === 0 && (
-          <p className="rounded-2xl border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">
+          <p className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-sm text-zinc-500">
             No workouts yet for {entry.label}. Add your first exercise above
             to start one.
           </p>
@@ -167,7 +167,7 @@ async function RoutineCharts({
               name={routine.name}
             />
 
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
               <p className="text-sm font-semibold text-zinc-100">
                 {UNIT_LABEL[unit]} — {routine.name}
               </p>
