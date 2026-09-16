@@ -9,7 +9,7 @@ import type { TablesInsert } from "@/types/database.types";
 
 export type GymFormResult =
   | { status: "error"; message: string }
-  | { status: "success" }
+  | { status: "success"; warning?: string }
   | null;
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -242,10 +242,33 @@ export async function saveSessionAction(
     return { status: "error", message: "Log at least one set first." };
   }
 
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Not authenticated." };
+
+  // Guard against stale client-side state — a set staged for an exercise
+  // that's since been deleted (or restored from an older backgrounded-tab
+  // localStorage backup) would otherwise hit the exercise_id foreign key
+  // and fail the whole batch with a raw Postgres error. Drop only the
+  // stale entries and save everything still valid instead.
+  const { data: validExercises } = await supabase
+    .from("exercises")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("muscle_group", muscleGroup);
+  const validExerciseIds = new Set((validExercises ?? []).map((e) => e.id));
+
   const sessionDate = new Date().toISOString().slice(0, 10);
   const rows: Omit<TablesInsert<"exercise_sets">, "user_id">[] = [];
+  let staleCount = 0;
   for (const [key, value] of entries) {
     const [exerciseId, setNumberRaw] = key.split(":");
+    if (!validExerciseIds.has(exerciseId)) {
+      staleCount++;
+      continue;
+    }
     const parsed = setLogSchema.safeParse({
       exerciseId,
       setNumber: setNumberRaw,
@@ -268,11 +291,12 @@ export async function saveSessionAction(
     });
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { status: "error", message: "Not authenticated." };
+  if (rows.length === 0) {
+    return {
+      status: "error",
+      message: "Those exercises no longer exist — refresh the page and try again.",
+    };
+  }
 
   const { error } = await supabase
     .from("exercise_sets")
@@ -281,6 +305,16 @@ export async function saveSessionAction(
       { onConflict: "exercise_id,session_date,set_number" },
     );
   if (error) return { status: "error", message: error.message };
+  if (staleCount > 0) {
+    // Still a real success — the valid sets saved fine, and the stale
+    // ones can never become valid — so this clears pending like any
+    // other success, just with a heads-up about what got dropped.
+    revalidatePath(`/dashboard/gym/${muscleGroup}`);
+    return {
+      status: "success",
+      warning: `${staleCount} set${staleCount === 1 ? "" : "s"} referenced an exercise that no longer exists and ${staleCount === 1 ? "was" : "were"} skipped.`,
+    };
+  }
 
   revalidatePath(`/dashboard/gym/${muscleGroup}`);
   return { status: "success" };

@@ -34,6 +34,11 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
           {state.message}
         </p>
       )}
+      {state?.status === "success" && state.warning && (
+        <p role="alert" className="text-sm text-amber-400">
+          {state.warning}
+        </p>
+      )}
     </form>
   );
 }

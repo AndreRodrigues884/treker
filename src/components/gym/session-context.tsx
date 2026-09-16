@@ -74,6 +74,7 @@ function keyFor(exerciseId: string, setNumber: number) {
 export function WorkoutSessionProvider({
   userId,
   scopeKey,
+  validExerciseIds,
   children,
 }: {
   /** Whose backup this is — scopes localStorage so it can never leak
@@ -82,6 +83,13 @@ export function WorkoutSessionProvider({
   /** What this session is for — the muscle group page it's mounted on —
    * so unrelated pages never restore each other's staged sets. */
   scopeKey: string;
+  /** Every exercise id that still exists for this muscle group, as of
+   * this page load — a localStorage backup can outlive the exercise it
+   * was staged against (deleted from another tab/device, or between
+   * visits), and restoring a set for an exercise that's gone is exactly
+   * what produced a foreign-key error on "Save session" instead of a
+   * clean save of everything still valid. */
+  validExerciseIds: string[];
   children: React.ReactNode;
 }) {
   const storageKey = storageKeyFor(userId, scopeKey);
@@ -94,10 +102,18 @@ export function WorkoutSessionProvider({
   // used for the theme toggle and the dashboard greeting.
   useEffect(() => {
     const restored = readStoredPending(storageKey);
-    if (Object.keys(restored).length > 0) {
+    const validIds = new Set(validExerciseIds);
+    const stillValid = Object.fromEntries(
+      Object.entries(restored).filter(([key]) => validIds.has(key.split(":")[0])),
+    );
+    if (Object.keys(stillValid).length > 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPending(restored);
+      setPending(stillValid);
     }
+    // Only meant to run once, against the exercise list as it was on
+    // this load — re-running it if validExerciseIds changes later (e.g.
+    // adding a new exercise mid-visit) would re-trigger a restore.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
   // Mirror every change to localStorage. Clears itself once nothing's

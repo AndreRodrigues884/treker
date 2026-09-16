@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type { DraggableAttributes } from "@dnd-kit/core";
 import type { DraggableSyntheticListeners } from "@dnd-kit/core";
 import { mostRecentSession } from "@/lib/gym/derive";
@@ -11,6 +11,7 @@ import type { SetDifficulty, MuscleGroup } from "@/lib/constants/gym";
 import { ExerciseForm } from "@/components/gym/exercise-form";
 import { useWorkoutSession } from "@/components/gym/session-context";
 import { GripIcon, PencilIcon, TrashIcon } from "@/components/ui/icons";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 /** "10 reps" or "30s" — this exercise's own unit decides how its target
  * and logged sets are read. */
@@ -43,6 +44,20 @@ export function ExerciseCard({
   const [activeSet, setActiveSet] = useState<number | null>(null);
   const [syncedSet, setSyncedSet] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [isDeleting, startDeleteTransition] = useTransition();
+
+  function handleDeleteConfirmed() {
+    startDeleteTransition(async () => {
+      const formData = new FormData();
+      formData.set("exerciseId", exercise.id);
+      formData.set("muscleGroup", muscleGroup);
+      await deleteExerciseAction(formData);
+      // No need to setConfirmingDelete(false) on success — the exercise
+      // (and this whole card) is gone once the action's revalidatePath
+      // takes effect.
+    });
+  }
 
   // Once a session is saved, it's just history — "last time" always
   // means the most recent saved session, even if that was today, and
@@ -180,17 +195,14 @@ export function ExerciseCard({
             >
               <PencilIcon className="h-4 w-4" />
             </button>
-            <form action={deleteExerciseAction}>
-              <input type="hidden" name="exerciseId" value={exercise.id} />
-              <input type="hidden" name="muscleGroup" value={muscleGroup} />
-              <button
-                type="submit"
-                aria-label="Delete exercise"
-                className="hover:text-red-400"
-              >
-                <TrashIcon className="h-4 w-4" />
-              </button>
-            </form>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              aria-label="Delete exercise"
+              className="hover:text-red-400"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
           </div>
           {dragHandle && (
             <button
@@ -326,6 +338,17 @@ export function ExerciseCard({
             </button>
           </div>
         </div>
+      )}
+
+      {confirmingDelete && (
+        <ConfirmModal
+          title="Delete exercise?"
+          message={`This removes "${exercise.name}" and every set ever logged for it. This can't be undone.`}
+          confirmLabel="Delete"
+          pending={isDeleting}
+          onConfirm={handleDeleteConfirmed}
+          onCancel={() => setConfirmingDelete(false)}
+        />
       )}
     </div>
   );

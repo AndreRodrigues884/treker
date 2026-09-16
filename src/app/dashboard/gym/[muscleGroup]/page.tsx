@@ -63,7 +63,11 @@ export default async function MuscleGroupPage({
   const routineList = routines.map((r) => ({ id: r.id, name: r.name }));
 
   return (
-    <WorkoutSessionProvider userId={user.id} scopeKey={group}>
+    <WorkoutSessionProvider
+      userId={user.id}
+      scopeKey={group}
+      validExerciseIds={exercises.map((e) => e.id)}
+    >
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
