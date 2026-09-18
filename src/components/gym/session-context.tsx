@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ExecutionType, SetDifficulty } from "@/lib/constants/gym";
 import { useWorkoutGuard } from "@/components/workout-guard";
 
@@ -159,12 +159,17 @@ export function WorkoutSessionProvider({
 
   const clearPending = useCallback(() => setPending({}), []);
 
+  // Without this, the context value was a fresh object every render —
+  // every ExerciseCard on the page would re-render whenever
+  // WorkoutSessionProvider re-rendered for any reason, not just when
+  // `pending` itself actually changed.
+  const value = useMemo(
+    () => ({ pending, setPendingSet, getPendingSet, clearPending }),
+    [pending, setPendingSet, getPendingSet, clearPending],
+  );
+
   return (
-    <SessionContext.Provider
-      value={{ pending, setPendingSet, getPendingSet, clearPending }}
-    >
-      {children}
-    </SessionContext.Provider>
+    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
   );
 }
 

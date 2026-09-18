@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { LeaveModal } from "@/components/dashboard/leave-modal";
 
@@ -53,8 +53,18 @@ export function WorkoutGuardProvider({
     setPendingHref(null);
   }
 
+  // This wraps the entire dashboard shell (sidebar + every page), so an
+  // unmemoized value here means every consumer everywhere — sidebar,
+  // muscle group tabs, the gym session context — re-renders on every
+  // pendingHref change (e.g. just opening/closing the leave modal),
+  // whether or not the thing it actually reads changed.
+  const value = useMemo(
+    () => ({ isDirty, setDirty, navigate }),
+    [isDirty, setDirty, navigate],
+  );
+
   return (
-    <WorkoutGuardContext.Provider value={{ isDirty, setDirty, navigate }}>
+    <WorkoutGuardContext.Provider value={value}>
       {children}
       {pendingHref && (
         <LeaveModal
