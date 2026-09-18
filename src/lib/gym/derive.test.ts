@@ -12,6 +12,7 @@ import {
   progressHistory,
   routineProgressHistory,
   routineUnit,
+  sessionsPerWeekHistory,
   sessionsThisWeek,
   setsForDate,
   setsPerMuscleGroup,
@@ -239,6 +240,35 @@ describe("averageSessionsPerWeek", () => {
 
   it("is zero with no sets", () => {
     expect(averageSessionsPerWeek([])).toBe(0);
+  });
+});
+
+describe("sessionsPerWeekHistory", () => {
+  it("always returns exactly `weeks` entries, oldest to newest, zero-filled", () => {
+    const currentWeekStart = isoWeekStart(todayISOForTest());
+    const oneWeekAgo = isoWeekStart(
+      new Date(new Date(`${currentWeekStart}T00:00:00Z`).getTime() - 7 * 86_400_000)
+        .toISOString()
+        .slice(0, 10),
+    );
+    const sets = [
+      makeSet({ session_date: currentWeekStart }),
+      makeSet({ session_date: oneWeekAgo, set_number: 1 }),
+      makeSet({ session_date: oneWeekAgo, set_number: 2 }),
+    ];
+    const history = sessionsPerWeekHistory(sets, 5);
+    expect(history).toHaveLength(5);
+    expect(history[4]).toEqual({ weekStart: currentWeekStart, sessions: 1 });
+    expect(history[3]).toEqual({ weekStart: oneWeekAgo, sessions: 1 });
+    // Weeks with nothing logged are still present, at zero.
+    expect(history[0].sessions).toBe(0);
+    expect(history[1].sessions).toBe(0);
+  });
+
+  it("is all zeros with no sets", () => {
+    const history = sessionsPerWeekHistory([], 5);
+    expect(history).toHaveLength(5);
+    expect(history.every((w) => w.sessions === 0)).toBe(true);
   });
 });
 

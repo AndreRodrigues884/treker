@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { onboardingSchema } from "@/lib/validation/onboarding";
 
@@ -34,5 +35,10 @@ export async function saveOnboardingAction(
     return { status: "error", message: error.message };
   }
 
+  // Without this, the sidebar (built once per layout render) could keep
+  // showing the old sport list until a manual refresh — the redirect
+  // below changes the URL, but doesn't by itself force the dashboard
+  // layout's cached data to refetch.
+  revalidatePath("/dashboard", "layout");
   redirect("/dashboard");
 }

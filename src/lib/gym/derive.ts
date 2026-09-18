@@ -251,6 +251,36 @@ export function averageSessionsPerWeek(sets: ExerciseSet[]): number {
   return uniqueDates.length / sessionsPerWeek.size;
 }
 
+export type WeekSessions = { weekStart: string; sessions: number };
+
+/** Distinct workout days per (Monday-start) week, for the last `weeks`
+ * weeks up to and including this one — always exactly that many entries,
+ * zero-filled, so a quiet week shows as a real 0 bar instead of just not
+ * being there. Unlike averageSessionsPerWeek (which only ever counts
+ * active weeks), this is for a chart that needs every week on the axis. */
+export function sessionsPerWeekHistory(
+  sets: ExerciseSet[],
+  weeks = 5,
+): WeekSessions[] {
+  const sessionsByWeek = new Map<string, Set<string>>();
+  for (const s of sets) {
+    const week = isoWeekStart(s.session_date);
+    const dates = sessionsByWeek.get(week) ?? new Set<string>();
+    dates.add(s.session_date);
+    sessionsByWeek.set(week, dates);
+  }
+
+  const currentWeekStart = isoWeekStart(todayISO());
+  const result: WeekSessions[] = [];
+  for (let i = weeks - 1; i >= 0; i--) {
+    const d = new Date(`${currentWeekStart}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - i * 7);
+    const weekStart = d.toISOString().slice(0, 10);
+    result.push({ weekStart, sessions: sessionsByWeek.get(weekStart)?.size ?? 0 });
+  }
+  return result;
+}
+
 /** Most recent session_date across every set, or null if there's none. */
 export function lastSessionDate(sets: ExerciseSet[]): string | null {
   if (sets.length === 0) return null;

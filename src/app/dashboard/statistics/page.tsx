@@ -7,6 +7,7 @@ import {
   bestOneRepMaxPerExercise,
   oneRepMaxHistory,
   plateauExercises,
+  sessionsPerWeekHistory,
   setsPerMuscleGroup,
   totalStrength,
   totalStrengthHistory,
@@ -14,6 +15,7 @@ import {
 import { MuscleGroupVolumeChart } from "@/components/gym/muscle-group-volume-chart";
 import { ProgressChart } from "@/components/gym/progress-chart";
 import { OneRepMaxCard } from "@/components/statistics/one-rep-max-card";
+import { WeeklySessionsChart } from "@/components/statistics/weekly-sessions-chart";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
 const VIOLET = "#a78bfa";
@@ -125,17 +127,25 @@ async function OneRepMaxSection({ userId }: { userId: string }) {
 async function SessionsPerWeekSection({ userId }: { userId: string }) {
   const sets = await getAllExerciseSets(userId);
   const avgSessionsPerWeek = averageSessionsPerWeek(sets);
+  const weeklyHistory = sessionsPerWeekHistory(sets, 5);
 
   return (
-    <StatCard
-      title="Treinos por semana"
-      subtitle={`Média: ${avgSessionsPerWeek.toFixed(1)} sessões/sem`}
-      note="Segunda-feira = início de semana"
-    >
-      <p className="text-3xl font-bold text-zinc-100">
-        {avgSessionsPerWeek.toFixed(1)}
-      </p>
-    </StatCard>
+    <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="font-semibold text-zinc-100">Treinos por semana</h2>
+          <p className="text-xs text-zinc-500">Segunda-feira = início de semana</p>
+        </div>
+        <p className="text-sm text-zinc-400">
+          Média:{" "}
+          <span className="text-base font-bold text-cyan-300">
+            {avgSessionsPerWeek.toFixed(1)}
+          </span>{" "}
+          sessões/sem
+        </p>
+      </div>
+      <WeeklySessionsChart data={weeklyHistory} />
+    </div>
   );
 }
 
