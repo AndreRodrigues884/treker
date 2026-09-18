@@ -95,3 +95,30 @@ export const getAllExerciseSets = cache(async (userId: string) => {
     .order("session_date", { ascending: true });
   return data ?? [];
 });
+
+/** Every personal record ever detected for this user, most recent first
+ * — the Achievements page's PR history. Exercise names aren't joined in
+ * here (same convention as everywhere else in this module — fetch
+ * exercises separately and look up by id), since an exercise can be
+ * renamed or deleted after the PR was set. */
+export const getExercisePrs = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("exercise_prs")
+    .select("*")
+    .eq("user_id", userId)
+    .order("session_date", { ascending: false })
+    .order("created_at", { ascending: false });
+  return data ?? [];
+});
+
+/** Every lifetime-volume milestone this user has crossed, in order. */
+export const getVolumeMilestones = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("volume_milestones")
+    .select("*")
+    .eq("user_id", userId)
+    .order("threshold_kg", { ascending: true });
+  return data ?? [];
+});

@@ -19,6 +19,10 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
     null,
   );
 
+  const hasAchievements =
+    state?.status === "success" &&
+    ((state.prs?.length ?? 0) > 0 || (state.milestonesKg?.length ?? 0) > 0);
+
   return (
     <form action={formAction} className="flex flex-col items-end gap-2">
       <button
@@ -38,6 +42,28 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
         <p role="alert" className="text-sm text-amber-400">
           {state.warning}
         </p>
+      )}
+      {/* Real, earned recognition — a genuine PR or lifetime-volume
+       * milestone, not an invented game mechanic — so this only ever
+       * shows up when saveSessionAction actually detected one. */}
+      {hasAchievements && (
+        <div
+          role="status"
+          className="w-full max-w-xs space-y-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm"
+        >
+          {state.prs?.map((pr, i) => (
+            <p key={`pr-${i}`} className="text-amber-300">
+              🎉 New PR:{" "}
+              <span className="font-semibold text-amber-200">{pr.exerciseName}</span>{" "}
+              — {pr.weightKg}kg × {pr.reps} (1RM est. {pr.oneRepMax.toFixed(1)}kg)
+            </p>
+          ))}
+          {state.milestonesKg?.map((kg) => (
+            <p key={`milestone-${kg}`} className="text-amber-300">
+              🏆 Milestone: {kg.toLocaleString()}kg lifted in total
+            </p>
+          ))}
+        </div>
       )}
     </form>
   );

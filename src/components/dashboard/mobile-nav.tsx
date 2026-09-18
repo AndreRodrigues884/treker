@@ -5,15 +5,7 @@ import { MenuIcon, LogoMarkIcon } from "@/components/ui/icons";
 import { SidebarContent } from "@/components/dashboard/sidebar-content";
 import type { ModalityOption } from "@/lib/constants/onboarding";
 
-export function MobileNav({
-  tabs,
-  email,
-  goalLabel,
-}: {
-  tabs: readonly ModalityOption[];
-  email: string;
-  goalLabel: string | null;
-}) {
+export function MobileNav({ tabs }: { tabs: readonly ModalityOption[] }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -46,8 +38,6 @@ export function MobileNav({
           <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-slate-900 p-4 shadow-2xl">
             <SidebarContent
               tabs={tabs}
-              email={email}
-              goalLabel={goalLabel}
               onNavigate={() => setOpen(false)}
               onClose={() => setOpen(false)}
             />

@@ -137,7 +137,7 @@ export function WeeklySessionsChart({ data }: { data: WeekSessions[] }) {
             }}
           >
             <p className="font-semibold text-zinc-100">
-              {hovered.sessions} {hovered.sessions === 1 ? "sessão" : "sessões"}
+              {hovered.sessions} {hovered.sessions === 1 ? "session" : "sessions"}
             </p>
             <p className="text-zinc-500">{formatDate(hovered.weekStart)}</p>
           </div>

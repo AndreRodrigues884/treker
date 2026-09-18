@@ -19,6 +19,7 @@ import {
   setsThisWeek,
   totalStrength,
   totalStrengthHistory,
+  totalVolumeEver,
 } from "./derive";
 import type { Exercise, ExerciseSet } from "@/types/gym";
 
@@ -172,6 +173,33 @@ describe("bestOneRepMaxPerExercise / totalStrength", () => {
     });
     const sets = [makeSet({ exercise_id: "plank", weight_kg: 20, reps: 60 })];
     expect(bestOneRepMaxPerExercise([plank], sets)).toEqual([]);
+  });
+});
+
+describe("totalVolumeEver", () => {
+  it("sums weight × reps across load-tracking exercises only", () => {
+    const bench = makeExercise({ id: "bench", tracks_load: true });
+    const curl = makeExercise({ id: "curl", tracks_load: false });
+    const sets = [
+      makeSet({ exercise_id: "bench", weight_kg: 100, reps: 5 }), // 500
+      makeSet({ exercise_id: "bench", weight_kg: 80, reps: 10 }), // 800
+      makeSet({ exercise_id: "curl", weight_kg: 20, reps: 10 }), // excluded
+    ];
+    expect(totalVolumeEver([bench, curl], sets)).toBe(1300);
+  });
+
+  it("excludes timed (seconds) exercises even if they track load", () => {
+    const plank = makeExercise({
+      id: "plank",
+      tracks_load: true,
+      unit: "seconds",
+    });
+    const sets = [makeSet({ exercise_id: "plank", weight_kg: 20, reps: 60 })];
+    expect(totalVolumeEver([plank], sets)).toBe(0);
+  });
+
+  it("is zero with no load-tracking sets", () => {
+    expect(totalVolumeEver([], [])).toBe(0);
   });
 });
 

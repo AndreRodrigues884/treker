@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, getProfile } from "@/lib/supabase/queries";
-import { MODALITIES, TRAINING_GOALS } from "@/lib/constants/onboarding";
+import { MODALITIES } from "@/lib/constants/onboarding";
 import { SidebarContent } from "@/components/dashboard/sidebar-content";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { WorkoutGuardProvider } from "@/components/workout-guard";
@@ -17,18 +17,14 @@ export default async function DashboardLayout({
   if (!profile?.onboarding_completed) redirect("/onboarding");
 
   const tabs = MODALITIES.filter((m) => profile.modalities.includes(m.value));
-  const goalLabel = profile.goals.length
-    ? TRAINING_GOALS.find((g) => g.value === profile.goals[0])?.label ?? null
-    : null;
-  const email = user.email ?? "";
 
   return (
     <WorkoutGuardProvider>
       <div className="flex min-h-screen flex-col bg-slate-900 text-zinc-100 md:flex-row">
-        <MobileNav tabs={tabs} email={email} goalLabel={goalLabel} />
+        <MobileNav tabs={tabs} />
 
         <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-700 bg-slate-900/60 p-4 md:sticky md:top-0 md:flex md:h-screen md:overflow-y-auto">
-          <SidebarContent tabs={tabs} email={email} goalLabel={goalLabel} />
+          <SidebarContent tabs={tabs} />
         </aside>
 
         <main className="flex-1 p-4 md:p-8">{children}</main>

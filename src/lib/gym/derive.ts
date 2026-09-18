@@ -129,6 +129,23 @@ export function totalStrength(perExercise: ExerciseOneRepMax[]): number {
   return perExercise.reduce((sum, e) => sum + e.oneRepMax, 0);
 }
 
+/** Lifetime total kg ever moved (weight × reps, summed across every set
+ * of every load-tracking, rep-counted exercise) — the basis for the
+ * volume-milestone achievements. Bodyweight exercises don't have a
+ * weight to sum, and a timed (seconds) exercise's `reps` column holds a
+ * duration, not a rep count — multiplying that by weight wouldn't be a
+ * real kg figure, so both are excluded, same as the 1RM/Total Strength
+ * calculations already do. */
+export function totalVolumeEver(exercises: Exercise[], sets: ExerciseSet[]): number {
+  const loadExerciseIds = new Set(
+    exercises.filter((e) => e.tracks_load && e.unit === "reps").map((e) => e.id),
+  );
+  return sets.reduce((sum, s) => {
+    if (!loadExerciseIds.has(s.exercise_id) || s.weight_kg == null) return sum;
+    return sum + s.weight_kg * s.reps;
+  }, 0);
+}
+
 /** Each session date's best estimated 1RM for one exercise — not a
  * running max, so a lighter/deload session shows as a real dip, not
  * hidden behind a plateaued high-water mark. */
@@ -144,7 +161,7 @@ export function oneRepMaxHistory(sets: ExerciseSet[]): ProgressPoint[] {
     .map(([date, value]) => ({ date, value }));
 }
 
-/** "Força Total" over time: the running best 1RM per exercise (a
+/** "Total Strength" over time: the running best 1RM per exercise (a
  * personal-record high-water mark, unlike oneRepMaxHistory above),
  * summed across every load-tracking exercise as of each session date —
  * this is deliberately monotonic, since it only moves when a PR does. */

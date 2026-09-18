@@ -8,21 +8,17 @@ import { useWorkoutGuard } from "@/components/workout-guard";
 
 /**
  * The whole sidebar — brand header, nav (icon badge + active highlight),
- * and a footer with the current goal, email and log out. Shared as-is
+ * and a footer with an Achievements link and log out. Shared as-is
  * between the desktop aside and the mobile drawer, so they never drift
  * apart; `usePathname()` means this has to be a Client Component, which
  * is fine to render directly from the server layout.
  */
 export function SidebarContent({
   tabs,
-  email,
-  goalLabel,
   onNavigate,
   onClose,
 }: {
   tabs: readonly ModalityOption[];
-  email: string;
-  goalLabel: string | null;
   onNavigate?: () => void;
   onClose?: () => void;
 }) {
@@ -125,11 +121,21 @@ export function SidebarContent({
         })}
       </nav>
 
-      <div className="mt-auto space-y-2 border-t border-slate-700 pt-4">
-        {goalLabel && (
-          <p className="truncate px-1 text-xs text-zinc-500">🎯 {goalLabel}</p>
-        )}
-        <p className="truncate px-1 text-xs text-zinc-500">{email}</p>
+      <div className="mt-auto space-y-1 border-t border-slate-700 pt-4">
+        <button
+          type="button"
+          onClick={() => handleNav("/dashboard/achievements")}
+          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
+            pathname.startsWith("/dashboard/achievements")
+              ? "bg-amber-500/15 font-medium text-amber-300"
+              : "text-zinc-300 hover:bg-slate-800"
+          }`}
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-amber-500/30 to-amber-500/5 text-base">
+            🏆
+          </span>
+          Achievements
+        </button>
         <form action={signOutAction}>
           <button
             type="submit"

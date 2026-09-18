@@ -40,31 +40,31 @@ export default async function StatisticsPage() {
       </div>
 
       <div className="space-y-4">
-        <Suspense fallback={<SectionSpinner label="Força Total…" />}>
-          <ForcaTotalSection userId={user.id} />
+        <Suspense fallback={<SectionSpinner label="Total Strength…" />}>
+          <TotalStrengthSection userId={user.id} />
         </Suspense>
 
-        <Suspense fallback={<SectionSpinner label="1RM Estimado…" />}>
+        <Suspense fallback={<SectionSpinner label="Estimated 1RM…" />}>
           <OneRepMaxSection userId={user.id} />
         </Suspense>
 
-        <Suspense fallback={<SectionSpinner label="Treinos por semana…" />}>
-          <SessionsPerWeekSection userId={user.id} />
+        <Suspense fallback={<SectionSpinner label="Deload analysis…" />}>
+          <DeloadSection userId={user.id} />
         </Suspense>
 
-        <Suspense fallback={<SectionSpinner label="Volume por grupo muscular…" />}>
+        <Suspense fallback={<SectionSpinner label="Volume per muscle group…" />}>
           <VolumeSection userId={user.id} />
         </Suspense>
 
-        <Suspense fallback={<SectionSpinner label="Análise de Deload…" />}>
-          <DeloadSection userId={user.id} />
+        <Suspense fallback={<SectionSpinner label="Sessions per week…" />}>
+          <SessionsPerWeekSection userId={user.id} />
         </Suspense>
       </div>
     </div>
   );
 }
 
-async function ForcaTotalSection({ userId }: { userId: string }) {
+async function TotalStrengthSection({ userId }: { userId: string }) {
   const [exercises, sets] = await Promise.all([
     getAllExercises(userId),
     getAllExerciseSets(userId),
@@ -80,9 +80,9 @@ async function ForcaTotalSection({ userId }: { userId: string }) {
     <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 className="font-semibold text-zinc-100">Força Total</h2>
+          <h2 className="font-semibold text-zinc-100">Total Strength</h2>
           <p className="text-xs text-zinc-500">
-            Soma dos 1RM acumulados · todos os exercícios
+            Sum of accumulated 1RM · every exercise
           </p>
         </div>
         <div className="text-right">
@@ -91,7 +91,7 @@ async function ForcaTotalSection({ userId }: { userId: string }) {
           </p>
           {strengthGain > 0 && (
             <p className="text-xs font-medium text-emerald-400">
-              +{formatKg(strengthGain)} ganhos
+              +{formatKg(strengthGain)} gained
             </p>
           )}
         </div>
@@ -124,48 +124,6 @@ async function OneRepMaxSection({ userId }: { userId: string }) {
   return <OneRepMaxCard exercises={oneRepMaxExercises} />;
 }
 
-async function SessionsPerWeekSection({ userId }: { userId: string }) {
-  const sets = await getAllExerciseSets(userId);
-  const avgSessionsPerWeek = averageSessionsPerWeek(sets);
-  const weeklyHistory = sessionsPerWeekHistory(sets, 5);
-
-  return (
-    <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h2 className="font-semibold text-zinc-100">Treinos por semana</h2>
-          <p className="text-xs text-zinc-500">Segunda-feira = início de semana</p>
-        </div>
-        <p className="text-sm text-zinc-400">
-          Média:{" "}
-          <span className="text-base font-bold text-cyan-300">
-            {avgSessionsPerWeek.toFixed(1)}
-          </span>{" "}
-          sessões/sem
-        </p>
-      </div>
-      <WeeklySessionsChart data={weeklyHistory} />
-    </div>
-  );
-}
-
-async function VolumeSection({ userId }: { userId: string }) {
-  const [exercises, sets] = await Promise.all([
-    getAllExercises(userId),
-    getAllExerciseSets(userId),
-  ]);
-  const volumeByGroup = setsPerMuscleGroup(exercises, sets, 8);
-
-  return (
-    <StatCard
-      title="Volume por grupo muscular"
-      subtitle="Séries registadas por grupo muscular · últimas 8 semanas"
-    >
-      <MuscleGroupVolumeChart data={volumeByGroup} />
-    </StatCard>
-  );
-}
-
 async function DeloadSection({ userId }: { userId: string }) {
   const [exercises, sets] = await Promise.all([
     getAllExercises(userId),
@@ -174,7 +132,7 @@ async function DeloadSection({ userId }: { userId: string }) {
   const plateaued = plateauExercises(exercises, sets, 3);
 
   return (
-    <StatCard title="Análise de Deload" subtitle="Exercícios em plateau há 3+ sessões">
+    <StatCard title="Deload Analysis" subtitle="Exercises plateaued for 3+ sessions">
       {plateaued.length === 0 ? (
         <EmptyNote>No plateaus detected — keep it up.</EmptyNote>
       ) : (
@@ -191,6 +149,48 @@ async function DeloadSection({ userId }: { userId: string }) {
         </ul>
       )}
     </StatCard>
+  );
+}
+
+async function VolumeSection({ userId }: { userId: string }) {
+  const [exercises, sets] = await Promise.all([
+    getAllExercises(userId),
+    getAllExerciseSets(userId),
+  ]);
+  const volumeByGroup = setsPerMuscleGroup(exercises, sets, 8);
+
+  return (
+    <StatCard
+      title="Volume per Muscle Group"
+      subtitle="Sets logged per muscle group · last 8 weeks"
+    >
+      <MuscleGroupVolumeChart data={volumeByGroup} />
+    </StatCard>
+  );
+}
+
+async function SessionsPerWeekSection({ userId }: { userId: string }) {
+  const sets = await getAllExerciseSets(userId);
+  const avgSessionsPerWeek = averageSessionsPerWeek(sets);
+  const weeklyHistory = sessionsPerWeekHistory(sets, 5);
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="font-semibold text-zinc-100">Sessions per Week</h2>
+          <p className="text-xs text-zinc-500">Week starts Monday</p>
+        </div>
+        <p className="text-sm text-zinc-400">
+          Average:{" "}
+          <span className="text-base font-bold text-cyan-300">
+            {avgSessionsPerWeek.toFixed(1)}
+          </span>{" "}
+          sessions/wk
+        </p>
+      </div>
+      <WeeklySessionsChart data={weeklyHistory} />
+    </div>
   );
 }
 

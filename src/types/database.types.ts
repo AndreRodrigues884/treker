@@ -34,6 +34,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      exercise_prs: {
+        Row: {
+          created_at: string
+          exercise_id: string
+          id: string
+          one_rep_max: number
+          reps: number
+          session_date: string
+          user_id: string
+          weight_kg: number
+        }
+        Insert: {
+          created_at?: string
+          exercise_id: string
+          id?: string
+          one_rep_max: number
+          reps: number
+          session_date: string
+          user_id: string
+          weight_kg: number
+        }
+        Update: {
+          created_at?: string
+          exercise_id?: string
+          id?: string
+          one_rep_max?: number
+          reps?: number
+          session_date?: string
+          user_id?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_prs_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercise_sets: {
         Row: {
           created_at: string
@@ -223,6 +264,30 @@ export type Database = {
           stroke?: Database["public"]["Enums"]["swim_stroke"]
           time_seconds?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      volume_milestones: {
+        Row: {
+          achieved_at: string
+          created_at: string
+          id: string
+          threshold_kg: number
+          user_id: string
+        }
+        Insert: {
+          achieved_at: string
+          created_at?: string
+          id?: string
+          threshold_kg: number
+          user_id: string
+        }
+        Update: {
+          achieved_at?: string
+          created_at?: string
+          id?: string
+          threshold_kg?: number
           user_id?: string
         }
         Relationships: []

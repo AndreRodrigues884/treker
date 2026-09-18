@@ -7,3 +7,5 @@ import type { Tables } from "@/types/database.types";
 export type Exercise = Tables<"exercises">;
 export type ExerciseSet = Tables<"exercise_sets">;
 export type Routine = Tables<"routines">;
+export type ExercisePr = Tables<"exercise_prs">;
+export type VolumeMilestone = Tables<"volume_milestones">;

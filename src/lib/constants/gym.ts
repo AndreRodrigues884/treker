@@ -58,6 +58,13 @@ export const EXERCISE_UNITS = [
  * routine picker — never a real routine id, so it can't collide. */
 export const NEW_ROUTINE = "__new__";
 
+/** Lifetime cumulative-volume milestones (kg ever lifted, load-tracking
+ * exercises only) — spaced so a new lifter sees the first one fairly
+ * soon, and someone training for years still has one ahead of them. */
+export const VOLUME_MILESTONES_KG = [
+  10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000,
+] as const;
+
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number]["value"];
 export type MuscleGroupOption = (typeof MUSCLE_GROUPS)[number];
 export type ExecutionType = (typeof EXECUTION_TYPES)[number]["value"];

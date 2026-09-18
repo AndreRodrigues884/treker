@@ -23,9 +23,9 @@ export function OneRepMaxCard({
   return (
     <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
       <div>
-        <h2 className="font-semibold text-zinc-100">1RM Estimado</h2>
+        <h2 className="font-semibold text-zinc-100">Estimated 1RM</h2>
         <p className="text-xs text-zinc-500">
-          Fórmula Epley · peso × (1 + reps/30)
+          Epley formula · weight × (1 + reps/30)
         </p>
       </div>
 
