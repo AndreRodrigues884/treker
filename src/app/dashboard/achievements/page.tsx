@@ -7,7 +7,7 @@ import {
   getExercisePrs,
   getVolumeMilestones,
 } from "@/lib/gym/queries";
-import { totalVolumeEver } from "@/lib/gym/derive";
+import { latestPrPerExercise, totalVolumeEver } from "@/lib/gym/derive";
 import { VOLUME_MILESTONES_KG } from "@/lib/constants/gym";
 import { TRAINING_GOALS } from "@/lib/constants/onboarding";
 import { formatDate } from "@/lib/chart-utils";
@@ -107,17 +107,21 @@ async function VolumeMilestonesSection({ userId }: { userId: string }) {
 }
 
 async function PrHistorySection({ userId }: { userId: string }) {
-  const [prs, exercises] = await Promise.all([
+  const [allPrs, exercises] = await Promise.all([
     getExercisePrs(userId),
     getAllExercises(userId),
   ]);
+  // A current-bests board, not a growing timeline — exercise_prs itself
+  // still keeps every PR ever hit, this just shows the latest (= best)
+  // one per exercise.
+  const prs = latestPrPerExercise(allPrs);
   const nameById = new Map(exercises.map((e) => [e.id, e.name]));
 
   return (
     <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
       <div>
         <h2 className="font-semibold text-zinc-100">Personal Records</h2>
-        <p className="text-xs text-zinc-500">Every 1RM best, the moment it happened</p>
+        <p className="text-xs text-zinc-500">Your current best on every exercise</p>
       </div>
       {prs.length === 0 ? (
         <p className="text-sm text-zinc-500">

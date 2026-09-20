@@ -1,4 +1,4 @@
-import type { Exercise, ExerciseSet } from "@/types/gym";
+import type { Exercise, ExercisePr, ExerciseSet } from "@/types/gym";
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/constants/gym";
 
 export function todayISO(): string {
@@ -144,6 +144,25 @@ export function totalVolumeEver(exercises: Exercise[], sets: ExerciseSet[]): num
     if (!loadExerciseIds.has(s.exercise_id) || s.weight_kg == null) return sum;
     return sum + s.weight_kg * s.reps;
   }, 0);
+}
+
+/** Just the current PB per exercise, out of the full PR history —
+ * exercise_prs is an append-only log (every PR ever hit stays a row,
+ * nothing is overwritten), but the Achievements page shows a "current
+ * bests" board, not a growing timeline. A PR is only ever inserted when
+ * it beats the prior one, so for a given exercise the most recent row is
+ * always its highest — "most recent" and "best" never disagree here.
+ * Assumes `prs` is already sorted most-recent-first (what
+ * getExercisePrs returns). */
+export function latestPrPerExercise(prs: ExercisePr[]): ExercisePr[] {
+  const seen = new Set<string>();
+  const result: ExercisePr[] = [];
+  for (const pr of prs) {
+    if (seen.has(pr.exercise_id)) continue;
+    seen.add(pr.exercise_id);
+    result.push(pr);
+  }
+  return result;
 }
 
 /** Each session date's best estimated 1RM for one exercise — not a

@@ -17,11 +17,12 @@ import {
   setsForDate,
   setsPerMuscleGroup,
   setsThisWeek,
+  latestPrPerExercise,
   totalStrength,
   totalStrengthHistory,
   totalVolumeEver,
 } from "./derive";
-import type { Exercise, ExerciseSet } from "@/types/gym";
+import type { Exercise, ExercisePr, ExerciseSet } from "@/types/gym";
 
 function makeSet(overrides: Partial<ExerciseSet>): ExerciseSet {
   return {
@@ -55,6 +56,20 @@ function makeExercise(overrides: Partial<Exercise>): Exercise {
     tracks_load: true,
     created_at: "",
     updated_at: "",
+    ...overrides,
+  };
+}
+
+function makePr(overrides: Partial<ExercisePr>): ExercisePr {
+  return {
+    id: "pr",
+    user_id: "user",
+    exercise_id: "exercise",
+    session_date: "2026-01-01",
+    weight_kg: 100,
+    reps: 5,
+    one_rep_max: 116.67,
+    created_at: "",
     ...overrides,
   };
 }
@@ -200,6 +215,24 @@ describe("totalVolumeEver", () => {
 
   it("is zero with no load-tracking sets", () => {
     expect(totalVolumeEver([], [])).toBe(0);
+  });
+});
+
+describe("latestPrPerExercise", () => {
+  it("keeps only the first (most recent) row per exercise", () => {
+    // Already sorted most-recent-first, same as getExercisePrs returns —
+    // bench's Sept PR should win over its January one.
+    const prs = [
+      makePr({ id: "bench-2", exercise_id: "bench", session_date: "2026-09-01", one_rep_max: 150 }),
+      makePr({ id: "squat-1", exercise_id: "squat", session_date: "2026-06-01", one_rep_max: 200 }),
+      makePr({ id: "bench-1", exercise_id: "bench", session_date: "2026-01-01", one_rep_max: 120 }),
+    ];
+    const latest = latestPrPerExercise(prs);
+    expect(latest.map((pr) => pr.id)).toEqual(["bench-2", "squat-1"]);
+  });
+
+  it("is empty with no PRs", () => {
+    expect(latestPrPerExercise([])).toEqual([]);
   });
 });
 

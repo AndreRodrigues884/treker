@@ -24,7 +24,7 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
     ((state.prs?.length ?? 0) > 0 || (state.milestonesKg?.length ?? 0) > 0);
 
   return (
-    <form action={formAction} className="flex flex-col items-end gap-2">
+    <form action={formAction} className="flex w-full flex-col items-end gap-2 sm:w-auto">
       <button
         type="submit"
         disabled={isPending || count === 0}
@@ -49,7 +49,7 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
       {hasAchievements && (
         <div
           role="status"
-          className="w-full max-w-xs space-y-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm"
+          className="w-full space-y-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm sm:max-w-sm"
         >
           {state.prs?.map((pr, i) => (
             <p key={`pr-${i}`} className="text-amber-300">

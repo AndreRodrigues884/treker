@@ -69,7 +69,7 @@ export default async function MuscleGroupPage({
       validExerciseIds={exercises.map((e) => e.id)}
     >
       <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
             <Link
               href="/dashboard/gym"
