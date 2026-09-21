@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { swimTimeSchema } from "@/lib/validation/swimming";
+import type { SwimStroke } from "@/lib/constants/swimming";
 
 export type SwimFormResult =
   | { status: "error"; message: string }
@@ -46,4 +47,54 @@ export async function logSwimTimeAction(
 
   revalidatePath("/dashboard/swimming");
   return { status: "success" };
+}
+
+/** A goal is a single current value, not a log — re-submitting for the
+ * same (stroke, distance) replaces it (upsert), unlike swim_times.
+ * Called directly from a client component via useTransition, same
+ * plain-action convention as renameRoutineAction, rather than
+ * useActionState — there's no multi-field form state to track here. */
+export async function setSwimGoalAction(
+  stroke: SwimStroke,
+  distanceM: number,
+  minutes: number,
+  seconds: number,
+) {
+  const targetSeconds = minutes * 60 + seconds;
+  if (!(targetSeconds > 0)) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("swim_goals").upsert(
+    {
+      user_id: user.id,
+      stroke,
+      distance_m: distanceM,
+      target_seconds: targetSeconds,
+    },
+    { onConflict: "user_id,stroke,distance_m" },
+  );
+
+  revalidatePath("/dashboard/swimming");
+}
+
+export async function clearSwimGoalAction(stroke: SwimStroke, distanceM: number) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from("swim_goals")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("stroke", stroke)
+    .eq("distance_m", distanceM);
+
+  revalidatePath("/dashboard/swimming");
 }

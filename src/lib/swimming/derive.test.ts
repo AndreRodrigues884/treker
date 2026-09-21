@@ -4,9 +4,11 @@ import {
   formatSwimTime,
   latestSwimTime,
   swimEventsWithData,
+  swimGoalProgress,
   swimTimeHistory,
 } from "./derive";
 import type { SwimTime } from "@/types/swimming";
+import type { ProgressPoint } from "@/lib/gym/derive";
 
 function makeTime(overrides: Partial<SwimTime>): SwimTime {
   return {
@@ -120,5 +122,52 @@ describe("formatSwimTime", () => {
 
   it("handles a large multi-minute time", () => {
     expect(formatSwimTime(725.07)).toBe("12:05.07");
+  });
+});
+
+describe("swimGoalProgress", () => {
+  it("is null with no history", () => {
+    expect(swimGoalProgress([], 90)).toBeNull();
+  });
+
+  it("computes progress, pace, and an ETA when improving towards the goal", () => {
+    const history: ProgressPoint[] = [
+      { date: "2026-01-01", value: 100 },
+      { date: "2026-01-08", value: 99 },
+    ];
+    const result = swimGoalProgress(history, 90);
+    expect(result?.progressPct).toBeCloseTo(10);
+    expect(result?.paceSecondsPerWeek).toBeCloseTo(-1);
+    expect(result?.improving).toBe(true);
+    expect(result?.etaDate).toBe("2026-03-12");
+  });
+
+  it("caps progress at 100 and has no ETA once the goal is already met", () => {
+    const history: ProgressPoint[] = [
+      { date: "2026-01-01", value: 95 },
+      { date: "2026-01-08", value: 89 },
+    ];
+    const result = swimGoalProgress(history, 90);
+    expect(result?.progressPct).toBe(100);
+    expect(result?.etaDate).toBeNull();
+  });
+
+  it("flags a worsening trend as not improving, with no ETA and progress floored at 0", () => {
+    const history: ProgressPoint[] = [
+      { date: "2026-01-01", value: 90 },
+      { date: "2026-01-08", value: 92 },
+    ];
+    const result = swimGoalProgress(history, 85);
+    expect(result?.progressPct).toBe(0);
+    expect(result?.improving).toBe(false);
+    expect(result?.etaDate).toBeNull();
+  });
+
+  it("has no pace/ETA with only one data point", () => {
+    const history: ProgressPoint[] = [{ date: "2026-01-01", value: 100 }];
+    const result = swimGoalProgress(history, 90);
+    expect(result?.paceSecondsPerWeek).toBeNull();
+    expect(result?.improving).toBe(false);
+    expect(result?.etaDate).toBeNull();
   });
 });

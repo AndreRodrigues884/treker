@@ -235,6 +235,36 @@ export type Database = {
         }
         Relationships: []
       }
+      swim_goals: {
+        Row: {
+          created_at: string
+          distance_m: number
+          id: string
+          stroke: Database["public"]["Enums"]["swim_stroke"]
+          target_seconds: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance_m: number
+          id?: string
+          stroke: Database["public"]["Enums"]["swim_stroke"]
+          target_seconds: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          distance_m?: number
+          id?: string
+          stroke?: Database["public"]["Enums"]["swim_stroke"]
+          target_seconds?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       swim_times: {
         Row: {
           created_at: string

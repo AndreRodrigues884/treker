@@ -150,24 +150,6 @@ export function GripIcon(props: IconProps) {
   );
 }
 
-/** The app's mark — an ascending, checkmark-like trend line with an
- * emphasized dot at the peak, echoing the "last point" emphasis on every
- * ProgressChart. Meant to sit inside the existing gradient badge (sized
- * via className, colored via currentColor), not stand alone. */
-export function LogoMarkIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2.75}
-        d="M4.5 13 9.5 18 19.5 5.5"
-      />
-      <circle cx="19.5" cy="5.5" r="1.6" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
 export function UserIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

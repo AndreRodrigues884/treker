@@ -15,3 +15,14 @@ export const getSwimTimes = cache(async (userId: string) => {
     .order("created_at", { ascending: true });
   return data ?? [];
 });
+
+/** One row per (stroke, distance) the user has set a goal for — small
+ * and cheap enough to fetch in full, same reasoning as getSwimTimes. */
+export const getSwimGoals = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("swim_goals")
+    .select("*")
+    .eq("user_id", userId);
+  return data ?? [];
+});

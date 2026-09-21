@@ -2,6 +2,8 @@ import type { SwimTime } from "@/types/swimming";
 import type { SwimStroke } from "@/lib/constants/swimming";
 import { isoWeekStart, todayISO, type ProgressPoint } from "@/lib/gym/derive";
 
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+
 export type SwimEvent = { stroke: SwimStroke; distanceM: number };
 
 function eventKey(stroke: SwimStroke, distanceM: number) {
@@ -66,4 +68,87 @@ export function formatSwimTime(totalSeconds: number): string {
   const seconds = totalSeconds - minutes * 60;
   if (minutes === 0) return seconds.toFixed(2);
   return `${minutes}:${seconds.toFixed(2).padStart(5, "0")}`;
+}
+
+/** Ordinary least squares of time (seconds) against weeks-since-first-
+ * point. Needs at least two points spread across different days —
+ * with everything on one day the line has no defined slope. */
+function linearTrendPerWeek(history: ProgressPoint[]): number | null {
+  if (history.length < 2) return null;
+  const firstMs = Date.parse(history[0].date);
+  const xs = history.map((p) => (Date.parse(p.date) - firstMs) / MS_PER_WEEK);
+  const ys = history.map((p) => p.value);
+  const n = xs.length;
+  const sumX = xs.reduce((a, b) => a + b, 0);
+  const sumY = ys.reduce((a, b) => a + b, 0);
+  const sumXY = xs.reduce((sum, x, i) => sum + x * ys[i], 0);
+  const sumXX = xs.reduce((sum, x) => sum + x * x, 0);
+  const denom = n * sumXX - sumX * sumX;
+  if (denom === 0) return null;
+  return (n * sumXY - sumX * sumY) / denom;
+}
+
+export type SwimGoalProgress = {
+  targetSeconds: number;
+  startSeconds: number;
+  latestSeconds: number;
+  bestSeconds: number;
+  /** 0-100, how far latest is from start towards target. */
+  progressPct: number;
+  /** latest - start; negative means faster (an improvement). */
+  improvementSinceStart: number;
+  /** Seconds gained/lost per week from a linear fit of the whole
+   * history; null when there isn't enough spread of days to fit one. */
+  paceSecondsPerWeek: number | null;
+  improving: boolean;
+  /** ISO date the linear trend crosses the goal, or null when the goal
+   * is already met or the trend isn't heading towards it. */
+  etaDate: string | null;
+};
+
+/** Everything the goal card needs, derived purely from this event's own
+ * time history — deliberately does not fold in data from other
+ * modalities (e.g. Gym strength trends): there's no validated formula
+ * linking the two, so mixing them in would dress up a guess as a
+ * calculation. */
+export function swimGoalProgress(
+  history: ProgressPoint[],
+  targetSeconds: number,
+): SwimGoalProgress | null {
+  if (history.length === 0) return null;
+
+  const startSeconds = history[0].value;
+  const latestSeconds = history.at(-1)!.value;
+  const bestSeconds = Math.min(...history.map((p) => p.value));
+
+  const totalGap = startSeconds - targetSeconds;
+  const remainingGap = latestSeconds - targetSeconds;
+  const progressPct =
+    totalGap > 0
+      ? Math.min(100, Math.max(0, ((startSeconds - latestSeconds) / totalGap) * 100))
+      : latestSeconds <= targetSeconds
+        ? 100
+        : 0;
+
+  const paceSecondsPerWeek = linearTrendPerWeek(history);
+  const improving = paceSecondsPerWeek != null && paceSecondsPerWeek < 0;
+
+  let etaDate: string | null = null;
+  if (improving && remainingGap > 0 && paceSecondsPerWeek != null) {
+    const weeksNeeded = remainingGap / -paceSecondsPerWeek;
+    const lastMs = Date.parse(history.at(-1)!.date);
+    etaDate = new Date(lastMs + weeksNeeded * MS_PER_WEEK).toISOString().slice(0, 10);
+  }
+
+  return {
+    targetSeconds,
+    startSeconds,
+    latestSeconds,
+    bestSeconds,
+    progressPct,
+    improvementSinceStart: latestSeconds - startSeconds,
+    paceSecondsPerWeek,
+    improving,
+    etaDate,
+  };
 }

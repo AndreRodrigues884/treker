@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import { signOutAction } from "@/lib/auth/actions";
-import { XIcon, LogoMarkIcon } from "@/components/ui/icons";
+import { XIcon } from "@/components/ui/icons";
 import type { ModalityOption } from "@/lib/constants/onboarding";
 import { useWorkoutGuard } from "@/components/workout-guard";
 
@@ -69,9 +70,13 @@ export function SidebarContent({
     <div className="flex h-full flex-col">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-500">
-            <LogoMarkIcon className="h-6 w-6 text-white" />
-          </span>
+          <Image
+            src="/logo/treker-logo.svg"
+            alt=""
+            width={40}
+            height={40}
+            className="h-10 w-10 shrink-0 rounded-xl"
+          />
           <div className="min-w-0">
             <p className="text-base font-bold tracking-tight">Treker</p>
             <p className="truncate text-xs text-zinc-500">{subtitle}</p>

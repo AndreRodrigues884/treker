@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser, getProfile } from "@/lib/supabase/queries";
-import { getSwimTimes } from "@/lib/swimming/queries";
+import { getSwimGoals, getSwimTimes } from "@/lib/swimming/queries";
 import { swimEventsWithData } from "@/lib/swimming/derive";
 import { SWIM_STROKES } from "@/lib/constants/swimming";
 import { LogTimeForm } from "@/components/swimming/log-time-form";
@@ -39,7 +39,10 @@ export default async function SwimmingPage() {
 const strokeOrder = SWIM_STROKES.map((s) => s.value);
 
 async function SwimEvents({ userId }: { userId: string }) {
-  const times = await getSwimTimes(userId);
+  const [times, goals] = await Promise.all([
+    getSwimTimes(userId),
+    getSwimGoals(userId),
+  ]);
   const events = swimEventsWithData(times).sort((a, b) => {
     const strokeDiff = strokeOrder.indexOf(a.stroke) - strokeOrder.indexOf(b.stroke);
     return strokeDiff !== 0 ? strokeDiff : a.distanceM - b.distanceM;
@@ -60,6 +63,11 @@ async function SwimEvents({ userId }: { userId: string }) {
           key={`${event.stroke}:${event.distanceM}`}
           event={event}
           times={times}
+          goal={
+            goals.find(
+              (g) => g.stroke === event.stroke && g.distance_m === event.distanceM,
+            ) ?? null
+          }
         />
       ))}
     </div>
