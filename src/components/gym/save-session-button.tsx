@@ -24,11 +24,11 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
     ((state.prs?.length ?? 0) > 0 || (state.milestonesKg?.length ?? 0) > 0);
 
   return (
-    <form action={formAction} className="flex w-full flex-col items-end gap-2 sm:w-auto">
+    <form action={formAction} className="flex flex-col items-end gap-2">
       <button
         type="submit"
         disabled={isPending || count === 0}
-        className="flex items-center gap-2 rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-zinc-950 transition hover:brightness-110 disabled:opacity-40"
+        className="flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-3 text-xs font-semibold text-zinc-950 transition hover:brightness-110 disabled:opacity-40"
       >
         {isPending && <SpinnerIcon className="h-4 w-4" />}
         {isPending ? "Saving…" : "Save session"}
@@ -49,7 +49,7 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
       {hasAchievements && (
         <div
           role="status"
-          className="w-full space-y-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm sm:max-w-sm"
+          className="w-72 max-w-[calc(100vw-2rem)] space-y-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm"
         >
           {state.prs?.map((pr, i) => (
             <p key={`pr-${i}`} className="text-amber-300">
