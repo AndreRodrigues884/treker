@@ -9,6 +9,7 @@ import { formatSwimTime, swimGoalProgress, type SwimEvent } from "@/lib/swimming
 import type { ProgressPoint } from "@/lib/gym/derive";
 import type { SwimGoal } from "@/types/swimming";
 import { PencilIcon, SpinnerIcon, TrashIcon } from "@/components/ui/icons";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 const monthYear = new Intl.DateTimeFormat("en", { month: "short", year: "numeric" });
 
@@ -22,7 +23,15 @@ export function SwimGoalCard({
   goal: SwimGoal | null;
 }) {
   const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  function handleDeleteConfirmed() {
+    startTransition(async () => {
+      await clearSwimGoalAction(event.stroke, event.distanceM);
+      setConfirmingDelete(false);
+    });
+  }
 
   if (!goal || editing) {
     return (
@@ -72,7 +81,7 @@ export function SwimGoalCard({
   const reached = remaining <= 0;
 
   return (
-    <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
+    <div className="space-y-3 border-t border-slate-700 pt-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-zinc-100">Progress to goal</p>
@@ -107,9 +116,7 @@ export function SwimGoalCard({
           <button
             type="button"
             disabled={pending}
-            onClick={() =>
-              startTransition(() => clearSwimGoalAction(event.stroke, event.distanceM))
-            }
+            onClick={() => setConfirmingDelete(true)}
             aria-label="Remove goal"
             className="text-zinc-500 hover:text-red-400 disabled:opacity-50"
           >
@@ -158,6 +165,17 @@ export function SwimGoalCard({
           sub={reached ? "goal reached" : etaDate ? "linear estimate" : "not on pace"}
         />
       </div>
+
+      {confirmingDelete && (
+        <ConfirmModal
+          title="Remove goal?"
+          message={`This removes the ${formatSwimTime(targetSeconds)} goal for this event. You can set a new one any time.`}
+          confirmLabel="Remove"
+          pending={pending}
+          onConfirm={handleDeleteConfirmed}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   );
 }
@@ -206,12 +224,12 @@ function GoalEditor({
   const [seconds, setSeconds] = useState(Number((initial % 60).toFixed(2)));
 
   return (
-    <div className="space-y-2 rounded-2xl border border-dashed border-slate-700 bg-slate-800/40 p-4">
+    <div className="space-y-2 border-t border-dashed border-slate-700 pt-4">
       <p className="text-sm font-medium text-zinc-300">
         {goal ? "Edit goal time" : `Set a goal time for ${event.distanceM}m`}
       </p>
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="space-y-1">
+      <div className="flex items-end gap-2">
+        <div className="space-y-1 flex flex-col">
           <label className="text-xs text-zinc-500">Minutes</label>
           <input
             type="number"
@@ -222,7 +240,7 @@ function GoalEditor({
             className="w-20 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-zinc-100 outline-none focus:border-cyan-400"
           />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 flex flex-col">
           <label className="text-xs text-zinc-500">Seconds</label>
           <input
             type="number"
