@@ -5,9 +5,11 @@ import { getAllExerciseSets } from "@/lib/gym/queries";
 import { lastSessionDate, sessionsThisWeek, setsThisWeek } from "@/lib/gym/derive";
 import { getSwimTimes } from "@/lib/swimming/queries";
 import { swimTimesThisWeek } from "@/lib/swimming/derive";
+import { getBodyweightLogs } from "@/lib/bodyweight/queries";
 import { MODALITIES } from "@/lib/constants/onboarding";
 import { Greeting } from "@/components/dashboard/greeting";
 import { ModalityCard } from "@/components/dashboard/modality-card";
+import { BodyweightCard } from "@/components/dashboard/bodyweight-card";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
 function formatFriendlyDate(iso: string): string {
@@ -35,8 +37,20 @@ export default async function DashboardPage() {
       <Suspense fallback={<SectionSpinner label="Loading your modalities…" />}>
         <ModalityGrid userId={user?.id} />
       </Suspense>
+
+      {/* Not tied to any one modality — shown regardless of which
+       * sports the user tracks, so it gets its own Suspense boundary
+       * rather than living inside ModalityGrid. */}
+      <Suspense fallback={<SectionSpinner label="Loading your bodyweight…" className="h-40" />}>
+        <BodyweightSection userId={user?.id} />
+      </Suspense>
     </div>
   );
+}
+
+async function BodyweightSection({ userId }: { userId: string | undefined }) {
+  const logs = userId ? await getBodyweightLogs(userId) : [];
+  return <BodyweightCard logs={logs} />;
 }
 
 async function OverviewHero({ user }: { user: User | null }) {

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { signInSchema, signUpSchema } from "@/lib/validation/auth";
 import { getPostAuthPath } from "@/lib/auth/redirect";
@@ -68,4 +69,25 @@ export async function signInAction(
   }
 
   redirect(await getPostAuthPath(data.user.id));
+}
+
+/** Same flow for both login and signup — Google/OAuth doesn't
+ * distinguish the two, the callback route sends a first-time user to
+ * onboarding and a returning one straight to the dashboard, same as
+ * signInAction does for email/password. */
+export async function signInWithGoogleAction() {
+  const headersList = await headers();
+  const host = headersList.get("host") ?? "localhost:3000";
+  const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${protocol}://${host}/auth/callback` },
+  });
+  if (error || !data.url) {
+    redirect("/login?error=google");
+  }
+
+  redirect(data.url);
 }

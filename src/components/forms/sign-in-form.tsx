@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { signInAction, type SignInResult } from "@/lib/actions/auth";
 import { TextField, PasswordField } from "@/components/ui/text-field";
 import { MailIcon, LockIcon, SpinnerIcon } from "@/components/ui/icons";
+import { GoogleButton } from "@/components/forms/google-button";
 
 const initialState: SignInResult = null;
 
@@ -14,42 +15,52 @@ export function SignInForm() {
   );
 
   return (
-    <form action={formAction} className="space-y-5">
-      <TextField
-        label="Email"
-        icon={<MailIcon />}
-        name="email"
-        type="email"
-        required
-        autoComplete="email"
-        placeholder="you@example.com"
-      />
-      <PasswordField
-        label="Password"
-        icon={<LockIcon />}
-        name="password"
-        required
-        autoComplete="current-password"
-        placeholder="Your password"
-      />
+    <div className="space-y-5">
+      <GoogleButton />
 
-      {state?.status === "error" && (
-        <p
-          role="alert"
-          className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400"
+      <div className="flex items-center gap-3 text-xs text-zinc-500">
+        <div className="h-px flex-1 bg-slate-700" />
+        or continue with email
+        <div className="h-px flex-1 bg-slate-700" />
+      </div>
+
+      <form action={formAction} className="space-y-5">
+        <TextField
+          label="Email"
+          icon={<MailIcon />}
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="you@example.com"
+        />
+        <PasswordField
+          label="Password"
+          icon={<LockIcon />}
+          name="password"
+          required
+          autoComplete="current-password"
+          placeholder="Your password"
+        />
+
+        {state?.status === "error" && (
+          <p
+            role="alert"
+            className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400"
+          >
+            {state.message}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:brightness-110 disabled:opacity-50"
         >
-          {state.message}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:brightness-110 disabled:opacity-50"
-      >
-        {pending && <SpinnerIcon className="h-4 w-4" />}
-        {pending ? "Logging in…" : "Log in"}
-      </button>
-    </form>
+          {pending && <SpinnerIcon className="h-4 w-4" />}
+          {pending ? "Logging in…" : "Log in"}
+        </button>
+      </form>
+    </div>
   );
 }
