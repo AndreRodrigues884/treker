@@ -56,12 +56,6 @@ export function SidebarContent({
           },
         ]
       : []),
-    {
-      href: "/dashboard/settings",
-      label: "Settings",
-      icon: "⚙️",
-      tint: "bg-linear-to-br from-slate-500/25 to-slate-500/5",
-    },
   ];
 
   const subtitle = tabs.map((t) => t.label).join(" · ") || "Let's train";
@@ -124,9 +118,6 @@ export function SidebarContent({
             </button>
           );
         })}
-      </nav>
-
-      <div className="mt-auto space-y-1 border-t border-slate-700 pt-4">
         <button
           type="button"
           onClick={() => handleNav("/dashboard/achievements")}
@@ -140,6 +131,23 @@ export function SidebarContent({
             🏆
           </span>
           Achievements
+        </button>
+      </nav>
+
+      <div className="mt-auto space-y-1 border-t border-slate-700 pt-4">
+        <button
+          type="button"
+          onClick={() => handleNav("/dashboard/settings")}
+          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
+            pathname.startsWith("/dashboard/settings")
+              ? "bg-indigo-500/15 font-medium text-indigo-300"
+              : "text-zinc-300 hover:bg-slate-800"
+          }`}
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-slate-500/25 to-slate-500/5 text-base">
+            ⚙️
+          </span>
+          Settings
         </button>
         <form action={signOutAction}>
           <button
