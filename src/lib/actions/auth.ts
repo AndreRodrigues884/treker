@@ -5,6 +5,12 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { signInSchema, signUpSchema } from "@/lib/validation/auth";
 import { getPostAuthPath } from "@/lib/auth/redirect";
+import {
+  getClientIp,
+  loginRateLimit,
+  oauthRateLimit,
+  signupRateLimit,
+} from "@/lib/rate-limit";
 
 export type SignUpResult =
   | { status: "error"; message: string }
@@ -15,6 +21,14 @@ export async function signUpAction(
   _prevState: SignUpResult,
   formData: FormData,
 ): Promise<SignUpResult> {
+  const { success } = await signupRateLimit.limit(await getClientIp());
+  if (!success) {
+    return {
+      status: "error",
+      message: "Too many attempts. Please wait a few minutes and try again.",
+    };
+  }
+
   const parsed = signUpSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -54,6 +68,14 @@ export async function signInAction(
   _prevState: SignInResult,
   formData: FormData,
 ): Promise<SignInResult> {
+  const { success } = await loginRateLimit.limit(await getClientIp());
+  if (!success) {
+    return {
+      status: "error",
+      message: "Too many attempts. Please wait a moment and try again.",
+    };
+  }
+
   const parsed = signInSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -76,6 +98,12 @@ export async function signInAction(
  * onboarding and a returning one straight to the dashboard, same as
  * signInAction does for email/password. */
 export async function signInWithGoogleAction() {
+  const ip = await getClientIp();
+  const { success } = await oauthRateLimit.limit(ip);
+  if (!success) {
+    redirect("/login?error=rate_limit");
+  }
+
   const headersList = await headers();
   const host = headersList.get("host") ?? "localhost:3000";
   const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
