@@ -41,3 +41,17 @@ export async function getClientIp(): Promise<string> {
   if (forwarded) return forwarded.split(",")[0].trim();
   return headersList.get("x-real-ip") ?? "unknown";
 }
+
+/** Rate limiting is a defense-in-depth measure, not core functionality —
+ * if Redis is unreachable or misconfigured (e.g. env vars missing in a
+ * given deployment), login/signup must still work. Fails open: an error
+ * here is logged but treated as "allowed", never as a block. */
+export async function isRateLimited(limiter: Ratelimit, ip: string): Promise<boolean> {
+  try {
+    const { success } = await limiter.limit(ip);
+    return !success;
+  } catch (error) {
+    console.error("Rate limit check failed, allowing request:", error);
+    return false;
+  }
+}

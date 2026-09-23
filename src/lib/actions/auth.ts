@@ -7,6 +7,7 @@ import { signInSchema, signUpSchema } from "@/lib/validation/auth";
 import { getPostAuthPath } from "@/lib/auth/redirect";
 import {
   getClientIp,
+  isRateLimited,
   loginRateLimit,
   oauthRateLimit,
   signupRateLimit,
@@ -21,8 +22,7 @@ export async function signUpAction(
   _prevState: SignUpResult,
   formData: FormData,
 ): Promise<SignUpResult> {
-  const { success } = await signupRateLimit.limit(await getClientIp());
-  if (!success) {
+  if (await isRateLimited(signupRateLimit, await getClientIp())) {
     return {
       status: "error",
       message: "Too many attempts. Please wait a few minutes and try again.",
@@ -68,8 +68,7 @@ export async function signInAction(
   _prevState: SignInResult,
   formData: FormData,
 ): Promise<SignInResult> {
-  const { success } = await loginRateLimit.limit(await getClientIp());
-  if (!success) {
+  if (await isRateLimited(loginRateLimit, await getClientIp())) {
     return {
       status: "error",
       message: "Too many attempts. Please wait a moment and try again.",
@@ -98,9 +97,7 @@ export async function signInAction(
  * onboarding and a returning one straight to the dashboard, same as
  * signInAction does for email/password. */
 export async function signInWithGoogleAction() {
-  const ip = await getClientIp();
-  const { success } = await oauthRateLimit.limit(ip);
-  if (!success) {
+  if (await isRateLimited(oauthRateLimit, await getClientIp())) {
     redirect("/login?error=rate_limit");
   }
 
