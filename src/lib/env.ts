@@ -48,7 +48,13 @@ function parseEnv() {
     );
   }
 
-  return parsed.data;
+  // At runtime this only actually has the client subset's keys when
+  // running in the browser (validated against clientSchema above) — but
+  // browser code only ever reads the two NEXT_PUBLIC_ keys that both
+  // schemas share, so widening the type to the full server shape here
+  // keeps every server-only file's `env.X` access type-checked without
+  // needing two differently-typed exports.
+  return parsed.data as z.infer<typeof serverSchema>;
 }
 
 export const env = parseEnv();

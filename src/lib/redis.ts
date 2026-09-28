@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { env } from "@/lib/env";
 
 /**
  * Upstash Redis client (REST-based, works from serverless/edge runtimes).
@@ -9,6 +10,6 @@ import { Redis } from "@upstash/redis";
  * Redis container.
  */
 export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  url: env.UPSTASH_REDIS_REST_URL,
+  token: env.UPSTASH_REDIS_REST_TOKEN,
 });

@@ -43,3 +43,6 @@ supabase/.temp
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# personal notes, not for the public repo
+docs/diario-trabalho.txt

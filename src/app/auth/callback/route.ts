@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { getPostAuthPath } from "@/lib/auth/redirect";
+import { env } from "@/lib/env";
 
 /** Where Google sends the user back to after they approve the login —
  * exchanges the OAuth `code` for a real Supabase session.
@@ -21,8 +22,8 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
           getAll: () => request.cookies.getAll(),
