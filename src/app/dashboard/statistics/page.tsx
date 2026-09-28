@@ -12,54 +12,118 @@ import {
   totalStrength,
   totalStrengthHistory,
 } from "@/lib/gym/derive";
+import { getRuns } from "@/lib/running/queries";
+import { runsThisWeek, totalDistanceThisWeek, weeklyDistanceHistory } from "@/lib/running/derive";
+import { getSwimTimes } from "@/lib/swimming/queries";
+import { swimEventsWithData, swimTimeHistory } from "@/lib/swimming/derive";
+import { SWIM_STROKES } from "@/lib/constants/swimming";
+import type { Modality } from "@/lib/constants/onboarding";
 import { MuscleGroupVolumeChart } from "@/components/gym/muscle-group-volume-chart";
 import { ProgressChart } from "@/components/gym/progress-chart";
 import { OneRepMaxCard } from "@/components/statistics/one-rep-max-card";
 import { WeeklySessionsChart } from "@/components/statistics/weekly-sessions-chart";
+import { SwimTimesCard } from "@/components/statistics/swim-times-card";
+import { StatisticsFilter, type StatSection } from "@/components/statistics/statistics-filter";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
 const VIOLET = "#a78bfa";
+const EMERALD = "#34d399";
+const ALL_MODALITIES: Modality[] = ["gym", "swimming", "running"];
 
 export default async function StatisticsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const profile = await getProfile(user.id);
-  if (!profile?.modalities.includes("gym")) redirect("/dashboard");
+  const availableModalities = ALL_MODALITIES.filter((m) =>
+    profile?.modalities.includes(m),
+  );
+  if (availableModalities.length === 0) redirect("/dashboard");
 
-  // Every card below reads from the same two cache()-deduped queries
-  // (getAllExercises/getAllExerciseSets), so splitting them into
-  // independent Suspense boundaries doesn't cost extra round trips — it
-  // just lets the title above render immediately instead of the whole
-  // route blocking on one big Promise.all before any HTML is sent.
+  // Every card below reads from its modality's own two cache()-deduped
+  // queries, so splitting them into independent Suspense boundaries
+  // doesn't cost extra round trips — it just lets the title above render
+  // immediately instead of the whole route blocking on one big
+  // Promise.all before any HTML is sent. All sections render up front
+  // regardless of the filter — StatisticsFilter just shows/hides them
+  // client-side, so switching modalities is instant.
+  const sections: StatSection[] = [];
+
+  if (availableModalities.includes("gym")) {
+    sections.push(
+      {
+        modality: "gym",
+        content: (
+          <Suspense fallback={<SectionSpinner label="Total Strength…" />}>
+            <TotalStrengthSection userId={user.id} />
+          </Suspense>
+        ),
+      },
+      {
+        modality: "gym",
+        content: (
+          <Suspense fallback={<SectionSpinner label="Estimated 1RM…" />}>
+            <OneRepMaxSection userId={user.id} />
+          </Suspense>
+        ),
+      },
+      {
+        modality: "gym",
+        content: (
+          <Suspense fallback={<SectionSpinner label="Deload analysis…" />}>
+            <DeloadSection userId={user.id} />
+          </Suspense>
+        ),
+      },
+      {
+        modality: "gym",
+        content: (
+          <Suspense fallback={<SectionSpinner label="Volume per muscle group…" />}>
+            <VolumeSection userId={user.id} />
+          </Suspense>
+        ),
+      },
+      {
+        modality: "gym",
+        content: (
+          <Suspense fallback={<SectionSpinner label="Sessions per week…" />}>
+            <SessionsPerWeekSection userId={user.id} />
+          </Suspense>
+        ),
+      },
+    );
+  }
+
+  if (availableModalities.includes("running")) {
+    sections.push({
+      modality: "running",
+      content: (
+        <Suspense fallback={<SectionSpinner label="Weekly mileage…" />}>
+          <WeeklyMileageSection userId={user.id} />
+        </Suspense>
+      ),
+    });
+  }
+
+  if (availableModalities.includes("swimming")) {
+    sections.push({
+      modality: "swimming",
+      content: (
+        <Suspense fallback={<SectionSpinner label="Swim times…" />}>
+          <SwimTimesSection userId={user.id} />
+        </Suspense>
+      ),
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Statistics</h1>
-        <p className="text-zinc-400">Your Gym numbers, across every exercise.</p>
+        <p className="text-zinc-400">Your numbers, across every sport you track.</p>
       </div>
 
-      <div className="space-y-4">
-        <Suspense fallback={<SectionSpinner label="Total Strength…" />}>
-          <TotalStrengthSection userId={user.id} />
-        </Suspense>
-
-        <Suspense fallback={<SectionSpinner label="Estimated 1RM…" />}>
-          <OneRepMaxSection userId={user.id} />
-        </Suspense>
-
-        <Suspense fallback={<SectionSpinner label="Deload analysis…" />}>
-          <DeloadSection userId={user.id} />
-        </Suspense>
-
-        <Suspense fallback={<SectionSpinner label="Volume per muscle group…" />}>
-          <VolumeSection userId={user.id} />
-        </Suspense>
-
-        <Suspense fallback={<SectionSpinner label="Sessions per week…" />}>
-          <SessionsPerWeekSection userId={user.id} />
-        </Suspense>
-      </div>
+      <StatisticsFilter availableModalities={availableModalities} sections={sections} />
     </div>
   );
 }
@@ -192,6 +256,55 @@ async function SessionsPerWeekSection({ userId }: { userId: string }) {
       <WeeklySessionsChart data={weeklyHistory} />
     </div>
   );
+}
+
+async function WeeklyMileageSection({ userId }: { userId: string }) {
+  const runs = await getRuns(userId);
+  const weekly = weeklyDistanceHistory(runs, 5);
+  const thisWeekRuns = runsThisWeek(runs);
+  const thisWeekKm = totalDistanceThisWeek(runs);
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="font-semibold text-zinc-100">Weekly Mileage</h2>
+          <p className="text-xs text-zinc-500">Week starts Monday</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xl font-bold text-emerald-400">{thisWeekKm.toFixed(1)}km</p>
+          <p className="text-xs text-zinc-500">
+            {thisWeekRuns} {thisWeekRuns === 1 ? "run" : "runs"} this week
+          </p>
+        </div>
+      </div>
+      <ProgressChart
+        points={weekly.map((w) => ({ date: w.weekStart, value: w.distanceKm }))}
+        unit="km"
+        color={EMERALD}
+      />
+    </div>
+  );
+}
+
+async function SwimTimesSection({ userId }: { userId: string }) {
+  const times = await getSwimTimes(userId);
+  const strokeOrder = SWIM_STROKES.map((s) => s.value);
+  const events = swimEventsWithData(times)
+    .sort((a, b) => {
+      const strokeDiff = strokeOrder.indexOf(a.stroke) - strokeOrder.indexOf(b.stroke);
+      return strokeDiff !== 0 ? strokeDiff : a.distanceM - b.distanceM;
+    })
+    .map((event) => {
+      const strokeEntry = SWIM_STROKES.find((s) => s.value === event.stroke);
+      return {
+        eventKey: `${event.stroke}:${event.distanceM}`,
+        eventLabel: `${event.distanceM}m ${strokeEntry?.label ?? event.stroke}`,
+        history: swimTimeHistory(times, event),
+      };
+    });
+
+  return <SwimTimesCard events={events} />;
 }
 
 function formatKg(value: number) {

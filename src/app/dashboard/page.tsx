@@ -5,6 +5,8 @@ import { getAllExerciseSets } from "@/lib/gym/queries";
 import { lastSessionDate, sessionsThisWeek, setsThisWeek } from "@/lib/gym/derive";
 import { getSwimTimes } from "@/lib/swimming/queries";
 import { swimTimesThisWeek } from "@/lib/swimming/derive";
+import { getRuns } from "@/lib/running/queries";
+import { runsThisWeek } from "@/lib/running/derive";
 import { getBodyweightLogs } from "@/lib/bodyweight/queries";
 import { MODALITIES } from "@/lib/constants/onboarding";
 import { Greeting } from "@/components/dashboard/greeting";
@@ -57,13 +59,16 @@ async function OverviewHero({ user }: { user: User | null }) {
   const profile = user ? await getProfile(user.id) : null;
   const tracksGym = profile?.modalities.includes("gym") ?? false;
   const tracksSwimming = profile?.modalities.includes("swimming") ?? false;
+  const tracksRunning = profile?.modalities.includes("running") ?? false;
 
-  const [gymSets, swimTimes] = await Promise.all([
+  const [gymSets, swimTimes, runs] = await Promise.all([
     user && tracksGym ? getAllExerciseSets(user.id) : Promise.resolve([]),
     user && tracksSwimming ? getSwimTimes(user.id) : Promise.resolve([]),
+    user && tracksRunning ? getRuns(user.id) : Promise.resolve([]),
   ]);
   const workouts = sessionsThisWeek(gymSets);
   const swims = swimTimesThisWeek(swimTimes);
+  const runsThisWk = runsThisWeek(runs);
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-linear-to-br from-slate-800 via-indigo-900/50 to-slate-800 p-6">
@@ -78,7 +83,7 @@ async function OverviewHero({ user }: { user: User | null }) {
           )}
         </div>
 
-        {(tracksGym || tracksSwimming) && (
+        {(tracksGym || tracksSwimming || tracksRunning) && (
           <div className="flex flex-wrap gap-6">
             {tracksGym && (
               <div className="text-left sm:text-right">
@@ -100,6 +105,16 @@ async function OverviewHero({ user }: { user: User | null }) {
                 </p>
               </div>
             )}
+            {tracksRunning && (
+              <div className="text-left sm:text-right">
+                <p className="bg-linear-to-r from-emerald-300 via-emerald-400 to-teal-500 bg-clip-text text-4xl font-bold text-transparent">
+                  {runsThisWk}
+                </p>
+                <p className="text-sm text-zinc-400">
+                  {runsThisWk === 1 ? "run" : "runs"} this week
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -112,10 +127,12 @@ async function ModalityGrid({ userId }: { userId: string | undefined }) {
   const tabs = MODALITIES.filter((m) => profile?.modalities.includes(m.value));
   const tracksGym = tabs.some((t) => t.value === "gym");
   const tracksSwimming = tabs.some((t) => t.value === "swimming");
+  const tracksRunning = tabs.some((t) => t.value === "running");
 
-  const [gymSets, swimTimes] = await Promise.all([
+  const [gymSets, swimTimes, runs] = await Promise.all([
     userId && tracksGym ? getAllExerciseSets(userId) : Promise.resolve([]),
     userId && tracksSwimming ? getSwimTimes(userId) : Promise.resolve([]),
+    userId && tracksRunning ? getRuns(userId) : Promise.resolve([]),
   ]);
 
   return (
@@ -172,17 +189,33 @@ async function ModalityGrid({ userId }: { userId: string | undefined }) {
           );
         }
 
-        return (
-          <ModalityCard
-            key={tab.value}
-            href={`/dashboard/${tab.value}`}
-            icon={tab.icon}
-            tint={tab.tint}
-            label={tab.label}
-          >
-            Coming soon
-          </ModalityCard>
-        );
+        if (tab.value === "running") {
+          const last = runs.length
+            ? runs.reduce(
+                (latest, r) => (r.session_date > latest ? r.session_date : latest),
+                runs[0].session_date,
+              )
+            : null;
+          return (
+            <ModalityCard
+              key={tab.value}
+              href="/dashboard/running"
+              icon={tab.icon}
+              tint={tab.tint}
+              label={tab.label}
+            >
+              {last ? (
+                <>
+                  Last run: {formatFriendlyDate(last)}
+                  <br />
+                  {runs.length} {runs.length === 1 ? "run" : "runs"} total
+                </>
+              ) : (
+                "No runs logged yet"
+              )}
+            </ModalityCard>
+          );
+        }
       })}
     </div>
   );

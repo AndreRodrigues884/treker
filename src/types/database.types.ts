@@ -262,6 +262,36 @@ export type Database = {
         }
         Relationships: []
       }
+      runs: {
+        Row: {
+          created_at: string
+          distance_km: number
+          duration_seconds: number
+          id: string
+          session_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance_km: number
+          duration_seconds: number
+          id?: string
+          session_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          distance_km?: number
+          duration_seconds?: number
+          id?: string
+          session_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       swim_goals: {
         Row: {
           created_at: string
