@@ -1,12 +1,12 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser, getProfile } from "@/lib/supabase/queries";
-import { getAllExercises, getAllExerciseSets } from "@/lib/gym/queries";
+import { getAllExercises, getAllExerciseSets, getDeloadAcknowledgements } from "@/lib/gym/queries";
 import {
   averageSessionsPerWeek,
   bestOneRepMaxPerExercise,
+  deloadExercises,
   oneRepMaxHistory,
-  plateauExercises,
   sessionsPerWeekHistory,
   setsPerMuscleGroup,
   totalStrength,
@@ -23,6 +23,7 @@ import { ProgressChart } from "@/components/gym/progress-chart";
 import { OneRepMaxCard } from "@/components/statistics/one-rep-max-card";
 import { WeeklySessionsChart } from "@/components/statistics/weekly-sessions-chart";
 import { SwimTimesCard } from "@/components/statistics/swim-times-card";
+import { DeloadCard } from "@/components/statistics/deload-card";
 import { StatisticsFilter, type StatSection } from "@/components/statistics/statistics-filter";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
@@ -189,29 +190,16 @@ async function OneRepMaxSection({ userId }: { userId: string }) {
 }
 
 async function DeloadSection({ userId }: { userId: string }) {
-  const [exercises, sets] = await Promise.all([
+  const [exercises, sets, acknowledgements] = await Promise.all([
     getAllExercises(userId),
     getAllExerciseSets(userId),
+    getDeloadAcknowledgements(userId),
   ]);
-  const plateaued = plateauExercises(exercises, sets, 3);
+  const plateaued = deloadExercises(exercises, sets, acknowledgements, 3);
 
   return (
     <StatCard title="Deload Analysis" subtitle="Exercises plateaued for 3+ sessions">
-      {plateaued.length === 0 ? (
-        <EmptyNote>No plateaus detected — keep it up.</EmptyNote>
-      ) : (
-        <ul className="space-y-2">
-          {plateaued.map((e) => (
-            <li
-              key={e.exerciseId}
-              className="flex items-center gap-2 text-sm text-amber-300"
-            >
-              <span aria-hidden>⚠️</span>
-              {e.exerciseName}
-            </li>
-          ))}
-        </ul>
-      )}
+      <DeloadCard exercises={plateaued} />
     </StatCard>
   );
 }

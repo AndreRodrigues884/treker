@@ -1,4 +1,4 @@
-import type { Exercise, ExercisePr, ExerciseSet } from "@/types/gym";
+import type { DeloadAcknowledgement, Exercise, ExercisePr, ExerciseSet } from "@/types/gym";
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/constants/gym";
 
 export function todayISO(): string {
@@ -258,6 +258,74 @@ export function plateauExercises(
     if (isFlat) {
       results.push({ exerciseId: exercise.id, exerciseName: exercise.name });
     }
+  }
+  return results;
+}
+
+export type DeloadSuggestion = {
+  sets: number;
+  reps: number;
+  /** null for exercises that don't track load — there's no weight to
+   * suggest, only sets/reps. */
+  weightKg: number | null;
+};
+
+/** A standard lighter-session recommendation for a plateaued exercise —
+ * ~10% lighter than the most recently logged weight (rounded to the
+ * nearest 0.5kg), one fewer set than the exercise's usual target, same
+ * reps. This is the conventional "deload" protocol (briefly reduce
+ * intensity and volume to recover), not a prediction of anything. */
+export function deloadSuggestion(
+  exercise: Exercise,
+  exerciseSets: ExerciseSet[],
+): DeloadSuggestion {
+  const suggestedSets = Math.max(2, exercise.sets - 1);
+
+  if (!exercise.tracks_load) {
+    return { sets: suggestedSets, reps: exercise.reps, weightKg: null };
+  }
+
+  const recent = mostRecentSession(exerciseSets);
+  const lastWeight = recent?.find((s) => s.weight_kg != null)?.weight_kg;
+  const weightKg =
+    lastWeight != null ? Math.round(Number(lastWeight) * 0.9 * 2) / 2 : null;
+
+  return { sets: suggestedSets, reps: exercise.reps, weightKg };
+}
+
+export type DeloadExercise = PlateauExercise & { suggestion: DeloadSuggestion };
+
+/** plateauExercises, enriched with a deload suggestion and filtered down
+ * to exercises the user hasn't already acknowledged — "acknowledged"
+ * means dismissed (the "Done" button) with nothing newly logged for
+ * that exercise since. Once a fresh set is logged after the
+ * acknowledgement, the exercise is eligible to show up again (and only
+ * will if it's still actually flat). */
+export function deloadExercises(
+  exercises: Exercise[],
+  sets: ExerciseSet[],
+  acknowledgements: DeloadAcknowledgement[],
+  minSessions = 3,
+): DeloadExercise[] {
+  const plateaued = plateauExercises(exercises, sets, minSessions);
+  const exerciseById = new Map(exercises.map((e) => [e.id, e]));
+  const ackByExercise = new Map(
+    acknowledgements.map((a) => [a.exercise_id, a.acknowledged_at]),
+  );
+
+  const results: DeloadExercise[] = [];
+  for (const plateau of plateaued) {
+    const exercise = exerciseById.get(plateau.exerciseId);
+    if (!exercise) continue;
+
+    const exerciseSets = sets.filter((s) => s.exercise_id === plateau.exerciseId);
+    const lastSetDate = mostRecentSession(exerciseSets)?.[0]?.session_date;
+    const acknowledgedAt = ackByExercise.get(plateau.exerciseId);
+    if (acknowledgedAt && lastSetDate && acknowledgedAt.slice(0, 10) >= lastSetDate) {
+      continue;
+    }
+
+    results.push({ ...plateau, suggestion: deloadSuggestion(exercise, exerciseSets) });
   }
   return results;
 }

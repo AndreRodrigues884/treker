@@ -217,6 +217,29 @@ export async function renameRoutineAction(
   revalidatePath(`/dashboard/gym/${muscleGroup}`);
 }
 
+/** Marks a plateaued exercise as "handled" — the Deload Analysis card
+ * drops it until a fresh set gets logged for it (see
+ * lib/gym/derive.ts's deloadExercises for the comparison). Upserts
+ * rather than inserts: re-acknowledging just bumps the timestamp. */
+export async function acknowledgeDeloadAction(exerciseId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("deload_acknowledgements").upsert(
+    {
+      user_id: user.id,
+      exercise_id: exerciseId,
+      acknowledged_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,exercise_id" },
+  );
+
+  revalidatePath("/dashboard/statistics");
+}
+
 export async function deleteExerciseAction(formData: FormData) {
   const exerciseId = formData.get("exerciseId");
   const muscleGroup = formData.get("muscleGroup");

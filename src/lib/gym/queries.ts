@@ -122,3 +122,15 @@ export const getVolumeMilestones = cache(async (userId: string) => {
     .order("threshold_kg", { ascending: true });
   return data ?? [];
 });
+
+/** One row per exercise the user has ever dismissed from Deload
+ * Analysis — small, fetched in full, same reasoning as the other
+ * per-user gym lookups. */
+export const getDeloadAcknowledgements = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("deload_acknowledgements")
+    .select("*")
+    .eq("user_id", userId);
+  return data ?? [];
+});

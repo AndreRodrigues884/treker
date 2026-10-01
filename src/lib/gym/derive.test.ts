@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   averageSessionsPerWeek,
   bestOneRepMaxPerExercise,
+  deloadExercises,
+  deloadSuggestion,
   estimatedOneRepMax,
   isoWeekStart,
   lastSessionBefore,
@@ -22,7 +24,7 @@ import {
   totalStrengthHistory,
   totalVolumeEver,
 } from "./derive";
-import type { Exercise, ExercisePr, ExerciseSet } from "@/types/gym";
+import type { DeloadAcknowledgement, Exercise, ExercisePr, ExerciseSet } from "@/types/gym";
 
 function makeSet(overrides: Partial<ExerciseSet>): ExerciseSet {
   return {
@@ -284,6 +286,74 @@ describe("plateauExercises", () => {
     const bench = makeExercise({ id: "bench", tracks_load: true });
     const sets = [makeSet({ exercise_id: "bench", session_date: "2026-01-01" })];
     expect(plateauExercises([bench], sets, 3)).toEqual([]);
+  });
+});
+
+describe("deloadSuggestion", () => {
+  it("suggests ~10% lighter (nearest 0.5kg), one fewer set, same reps", () => {
+    const bench = makeExercise({ id: "bench", sets: 4, reps: 8, tracks_load: true });
+    const sets = [
+      makeSet({ exercise_id: "bench", session_date: "2026-01-15", weight_kg: 101, reps: 8 }),
+    ];
+    expect(deloadSuggestion(bench, sets)).toEqual({ sets: 3, reps: 8, weightKg: 91 });
+  });
+
+  it("never suggests fewer than 2 sets", () => {
+    const bench = makeExercise({ id: "bench", sets: 2, reps: 8, tracks_load: true });
+    expect(deloadSuggestion(bench, []).sets).toBe(2);
+  });
+
+  it("has no weight suggestion for exercises that don't track load", () => {
+    const plank = makeExercise({ id: "plank", sets: 3, reps: 30, tracks_load: false });
+    const sets = [makeSet({ exercise_id: "plank", session_date: "2026-01-15", reps: 30 })];
+    expect(deloadSuggestion(plank, sets)).toEqual({ sets: 2, reps: 30, weightKg: null });
+  });
+});
+
+describe("deloadExercises", () => {
+  function makeAck(overrides: Partial<DeloadAcknowledgement>): DeloadAcknowledgement {
+    return {
+      id: "ack",
+      user_id: "user",
+      exercise_id: "bench",
+      acknowledged_at: "2026-01-16T00:00:00Z",
+      ...overrides,
+    };
+  }
+
+  const flatSets = [
+    makeSet({ exercise_id: "bench", session_date: "2026-01-01", weight_kg: 100, reps: 5 }),
+    makeSet({ exercise_id: "bench", session_date: "2026-01-08", weight_kg: 100, reps: 5 }),
+    makeSet({ exercise_id: "bench", session_date: "2026-01-15", weight_kg: 95, reps: 5 }),
+  ];
+
+  it("includes a suggestion alongside each plateaued exercise", () => {
+    const bench = makeExercise({ id: "bench" });
+    const result = deloadExercises([bench], flatSets, [], 3);
+    expect(result).toEqual([
+      {
+        exerciseId: "bench",
+        exerciseName: "Bench Press",
+        suggestion: deloadSuggestion(bench, flatSets),
+      },
+    ]);
+  });
+
+  it("hides an exercise acknowledged after its last logged set", () => {
+    const bench = makeExercise({ id: "bench" });
+    const acks = [makeAck({ acknowledged_at: "2026-01-16T00:00:00Z" })]; // after 01-15
+    expect(deloadExercises([bench], flatSets, acks, 3)).toEqual([]);
+  });
+
+  it("shows the exercise again once a new set lands after the acknowledgement", () => {
+    const bench = makeExercise({ id: "bench" });
+    const acks = [makeAck({ acknowledged_at: "2026-01-16T00:00:00Z" })];
+    const setsWithNewOne = [
+      ...flatSets,
+      makeSet({ exercise_id: "bench", session_date: "2026-01-22", weight_kg: 95, reps: 5 }),
+    ];
+    const result = deloadExercises([bench], setsWithNewOne, acks, 3);
+    expect(result.map((r) => r.exerciseId)).toEqual(["bench"]);
   });
 });
 

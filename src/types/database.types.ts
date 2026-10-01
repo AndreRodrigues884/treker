@@ -61,6 +61,35 @@ export type Database = {
         }
         Relationships: []
       }
+      deload_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          exercise_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          exercise_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          exercise_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deload_acknowledgements_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercise_prs: {
         Row: {
           created_at: string

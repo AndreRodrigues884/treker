@@ -9,3 +9,4 @@ export type ExerciseSet = Tables<"exercise_sets">;
 export type Routine = Tables<"routines">;
 export type ExercisePr = Tables<"exercise_prs">;
 export type VolumeMilestone = Tables<"volume_milestones">;
+export type DeloadAcknowledgement = Tables<"deload_acknowledgements">;
