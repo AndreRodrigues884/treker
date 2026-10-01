@@ -115,7 +115,7 @@ export function ProgressChart({
   const hovered = hoverIndex !== null ? coords[hoverIndex] : null;
   const lastPoint = coords.at(-1)!;
 
-  function handlePointerMove(e: React.PointerEvent<SVGSVGElement>) {
+  function handlePointerActive(e: React.PointerEvent<SVGSVGElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
     const relX = ((e.clientX - rect.left) / rect.width) * WIDTH;
     let nearest = 0;
@@ -138,7 +138,10 @@ export function ProgressChart({
           className="w-full touch-none"
           role="img"
           aria-label="Progress chart"
-          onPointerMove={handlePointerMove}
+          onPointerDown={handlePointerActive}
+          onPointerMove={handlePointerActive}
+          onPointerUp={() => setHoverIndex(null)}
+          onPointerCancel={() => setHoverIndex(null)}
           onPointerLeave={() => setHoverIndex(null)}
         >
           {ticks.map((tick) => {
