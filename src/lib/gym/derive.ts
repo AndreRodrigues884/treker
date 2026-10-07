@@ -339,39 +339,62 @@ export function isoWeekStart(dateStr: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Distinct workout days per distinct (Monday-start) week that had at
- * least one, averaged — i.e. "how many sessions in a typical active
- * week", not diluted by weeks with no training logged at all. */
-export function averageSessionsPerWeek(sets: ExerciseSet[]): number {
-  const uniqueDates = [...new Set(sets.map((s) => s.session_date))];
-  if (uniqueDates.length === 0) return 0;
+/** A "workout" is one muscle group's worth of sets saved on one day —
+ * the same atomic unit the Save Session button commits in a single
+ * call. Training two different muscle groups on the same calendar day
+ * (e.g. Back, then Chest) is two separate workouts, not one, even
+ * though both sets share a session_date — so every count below keys on
+ * (date, muscle group), not date alone. Encoded as a plain string since
+ * muscle_group values never contain ":"; session_date splits off the
+ * same way every time. */
+function workoutKeys(sets: ExerciseSet[], exercises: Exercise[]): Set<string> {
+  const muscleGroupByExercise = new Map(exercises.map((e) => [e.id, e.muscle_group]));
+  const keys = new Set<string>();
+  for (const s of sets) {
+    const muscleGroup = muscleGroupByExercise.get(s.exercise_id);
+    if (!muscleGroup) continue;
+    keys.add(`${s.session_date}:${muscleGroup}`);
+  }
+  return keys;
+}
+
+/** Distinct workouts per distinct (Monday-start) week that had at least
+ * one, averaged — i.e. "how many workouts in a typical active week",
+ * not diluted by weeks with no training logged at all. */
+export function averageSessionsPerWeek(
+  sets: ExerciseSet[],
+  exercises: Exercise[],
+): number {
+  const keys = [...workoutKeys(sets, exercises)];
+  if (keys.length === 0) return 0;
 
   const sessionsPerWeek = new Map<string, number>();
-  for (const date of uniqueDates) {
-    const week = isoWeekStart(date);
+  for (const key of keys) {
+    const week = isoWeekStart(key.split(":")[0]);
     sessionsPerWeek.set(week, (sessionsPerWeek.get(week) ?? 0) + 1);
   }
 
-  return uniqueDates.length / sessionsPerWeek.size;
+  return keys.length / sessionsPerWeek.size;
 }
 
 export type WeekSessions = { weekStart: string; sessions: number };
 
-/** Distinct workout days per (Monday-start) week, for the last `weeks`
+/** Distinct workouts per (Monday-start) week, for the last `weeks`
  * weeks up to and including this one — always exactly that many entries,
  * zero-filled, so a quiet week shows as a real 0 bar instead of just not
  * being there. Unlike averageSessionsPerWeek (which only ever counts
  * active weeks), this is for a chart that needs every week on the axis. */
 export function sessionsPerWeekHistory(
   sets: ExerciseSet[],
+  exercises: Exercise[],
   weeks = 5,
 ): WeekSessions[] {
   const sessionsByWeek = new Map<string, Set<string>>();
-  for (const s of sets) {
-    const week = isoWeekStart(s.session_date);
-    const dates = sessionsByWeek.get(week) ?? new Set<string>();
-    dates.add(s.session_date);
-    sessionsByWeek.set(week, dates);
+  for (const key of workoutKeys(sets, exercises)) {
+    const week = isoWeekStart(key.split(":")[0]);
+    const weekKeys = sessionsByWeek.get(week) ?? new Set<string>();
+    weekKeys.add(key);
+    sessionsByWeek.set(week, weekKeys);
   }
 
   const currentWeekStart = isoWeekStart(todayISO());
@@ -400,11 +423,10 @@ export function setsThisWeek(sets: ExerciseSet[]): number {
   return sets.filter((s) => s.session_date >= monday).length;
 }
 
-/** Distinct workout days logged since this (Monday-start) week began. */
-export function sessionsThisWeek(sets: ExerciseSet[]): number {
+/** Distinct workouts (date + muscle group) logged since this
+ * (Monday-start) week began. */
+export function sessionsThisWeek(sets: ExerciseSet[], exercises: Exercise[]): number {
   const monday = isoWeekStart(todayISO());
-  const datesThisWeek = new Set(
-    sets.filter((s) => s.session_date >= monday).map((s) => s.session_date),
-  );
-  return datesThisWeek.size;
+  const recentSets = sets.filter((s) => s.session_date >= monday);
+  return workoutKeys(recentSets, exercises).size;
 }

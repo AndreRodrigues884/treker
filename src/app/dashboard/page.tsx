@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getCurrentUser, getProfile, getDisplayName } from "@/lib/supabase/queries";
-import { getAllExerciseSets } from "@/lib/gym/queries";
+import { getAllExercises, getAllExerciseSets } from "@/lib/gym/queries";
 import { lastSessionDate, sessionsThisWeek, setsThisWeek } from "@/lib/gym/derive";
 import { getSwimTimes } from "@/lib/swimming/queries";
 import { swimTimesThisWeek } from "@/lib/swimming/derive";
@@ -61,12 +61,13 @@ async function OverviewHero({ user }: { user: User | null }) {
   const tracksSwimming = profile?.modalities.includes("swimming") ?? false;
   const tracksRunning = profile?.modalities.includes("running") ?? false;
 
-  const [gymSets, swimTimes, runs] = await Promise.all([
+  const [gymExercises, gymSets, swimTimes, runs] = await Promise.all([
+    user && tracksGym ? getAllExercises(user.id) : Promise.resolve([]),
     user && tracksGym ? getAllExerciseSets(user.id) : Promise.resolve([]),
     user && tracksSwimming ? getSwimTimes(user.id) : Promise.resolve([]),
     user && tracksRunning ? getRuns(user.id) : Promise.resolve([]),
   ]);
-  const workouts = sessionsThisWeek(gymSets);
+  const workouts = sessionsThisWeek(gymSets, gymExercises);
   const swims = swimTimesThisWeek(swimTimes);
   const runsThisWk = runsThisWeek(runs);
 

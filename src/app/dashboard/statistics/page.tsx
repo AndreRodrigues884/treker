@@ -222,9 +222,12 @@ async function VolumeSection({ userId }: { userId: string }) {
 }
 
 async function SessionsPerWeekSection({ userId }: { userId: string }) {
-  const sets = await getAllExerciseSets(userId);
-  const avgSessionsPerWeek = averageSessionsPerWeek(sets);
-  const weeklyHistory = sessionsPerWeekHistory(sets, 5);
+  const [exercises, sets] = await Promise.all([
+    getAllExercises(userId),
+    getAllExerciseSets(userId),
+  ]);
+  const avgSessionsPerWeek = averageSessionsPerWeek(sets, exercises);
+  const weeklyHistory = sessionsPerWeekHistory(sets, exercises, 5);
 
   return (
     <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">

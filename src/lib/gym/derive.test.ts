@@ -358,6 +358,8 @@ describe("deloadExercises", () => {
 });
 
 describe("averageSessionsPerWeek", () => {
+  const exercises = [makeExercise({ id: "exercise" })];
+
   it("averages sessions only across weeks that had at least one", () => {
     // Mon 2026-01-05 + Wed 2026-01-07 = 2 sessions in week of Jan 5.
     // Mon 2026-01-12 = 1 session in the next week.
@@ -366,15 +368,27 @@ describe("averageSessionsPerWeek", () => {
       makeSet({ session_date: "2026-01-07" }),
       makeSet({ session_date: "2026-01-12" }),
     ];
-    expect(averageSessionsPerWeek(sets)).toBeCloseTo(3 / 2);
+    expect(averageSessionsPerWeek(sets, exercises)).toBeCloseTo(3 / 2);
   });
 
   it("is zero with no sets", () => {
-    expect(averageSessionsPerWeek([])).toBe(0);
+    expect(averageSessionsPerWeek([], exercises)).toBe(0);
+  });
+
+  it("counts two muscle groups trained the same day as two sessions", () => {
+    const back = makeExercise({ id: "back-ex", muscle_group: "back" });
+    const chest = makeExercise({ id: "chest-ex", muscle_group: "chest" });
+    const sets = [
+      makeSet({ exercise_id: "back-ex", session_date: "2026-01-05" }),
+      makeSet({ exercise_id: "chest-ex", session_date: "2026-01-05" }),
+    ];
+    expect(averageSessionsPerWeek(sets, [back, chest])).toBe(2);
   });
 });
 
 describe("sessionsPerWeekHistory", () => {
+  const exercises = [makeExercise({ id: "exercise" })];
+
   it("always returns exactly `weeks` entries, oldest to newest, zero-filled", () => {
     const currentWeekStart = isoWeekStart(todayISOForTest());
     const oneWeekAgo = isoWeekStart(
@@ -387,7 +401,7 @@ describe("sessionsPerWeekHistory", () => {
       makeSet({ session_date: oneWeekAgo, set_number: 1 }),
       makeSet({ session_date: oneWeekAgo, set_number: 2 }),
     ];
-    const history = sessionsPerWeekHistory(sets, 5);
+    const history = sessionsPerWeekHistory(sets, exercises, 5);
     expect(history).toHaveLength(5);
     expect(history[4]).toEqual({ weekStart: currentWeekStart, sessions: 1 });
     expect(history[3]).toEqual({ weekStart: oneWeekAgo, sessions: 1 });
@@ -397,9 +411,21 @@ describe("sessionsPerWeekHistory", () => {
   });
 
   it("is all zeros with no sets", () => {
-    const history = sessionsPerWeekHistory([], 5);
+    const history = sessionsPerWeekHistory([], exercises, 5);
     expect(history).toHaveLength(5);
     expect(history.every((w) => w.sessions === 0)).toBe(true);
+  });
+
+  it("counts two muscle groups trained the same day as two sessions", () => {
+    const today = todayISOForTest();
+    const back = makeExercise({ id: "back-ex", muscle_group: "back" });
+    const chest = makeExercise({ id: "chest-ex", muscle_group: "chest" });
+    const sets = [
+      makeSet({ exercise_id: "back-ex", session_date: today }),
+      makeSet({ exercise_id: "chest-ex", session_date: today }),
+    ];
+    const history = sessionsPerWeekHistory(sets, [back, chest], 5);
+    expect(history.at(-1)?.sessions).toBe(2);
   });
 });
 
@@ -419,6 +445,8 @@ describe("lastSessionDate", () => {
 });
 
 describe("setsThisWeek / sessionsThisWeek", () => {
+  const exercises = [makeExercise({ id: "exercise" })];
+
   it("only counts sets on or after this week's Monday", () => {
     const monday = isoWeekStart(todayISOForTest());
     const sets = [
@@ -427,13 +455,33 @@ describe("setsThisWeek / sessionsThisWeek", () => {
       makeSet({ session_date: "2000-01-01" }), // long before this week
     ];
     expect(setsThisWeek(sets)).toBe(2);
-    expect(sessionsThisWeek(sets)).toBe(1); // both sets share the same day
+    // Both sets share the same day AND muscle group, so one workout.
+    expect(sessionsThisWeek(sets, exercises)).toBe(1);
   });
 
   it("are both zero with no sets this week", () => {
     const sets = [makeSet({ session_date: "2000-01-01" })];
     expect(setsThisWeek(sets)).toBe(0);
-    expect(sessionsThisWeek(sets)).toBe(0);
+    expect(sessionsThisWeek(sets, exercises)).toBe(0);
+  });
+
+  it("counts back+chest same day, plus shoulders the day before, as three workouts", () => {
+    const monday = isoWeekStart(todayISOForTest());
+    const tuesday = new Date(`${monday}T00:00:00Z`);
+    tuesday.setUTCDate(tuesday.getUTCDate() + 1);
+    const tuesdayISO = tuesday.toISOString().slice(0, 10);
+
+    const back = makeExercise({ id: "back-ex", muscle_group: "back" });
+    const chest = makeExercise({ id: "chest-ex", muscle_group: "chest" });
+    const shoulders = makeExercise({ id: "shoulders-ex", muscle_group: "shoulders" });
+    const sets = [
+      // Monday: shoulders.
+      makeSet({ exercise_id: "shoulders-ex", session_date: monday }),
+      // Tuesday: back AND chest — two separate workouts, same day.
+      makeSet({ exercise_id: "back-ex", session_date: tuesdayISO }),
+      makeSet({ exercise_id: "chest-ex", session_date: tuesdayISO }),
+    ];
+    expect(sessionsThisWeek(sets, [back, chest, shoulders])).toBe(3);
   });
 });
 
