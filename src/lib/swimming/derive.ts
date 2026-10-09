@@ -1,4 +1,4 @@
-import type { SwimTime } from "@/types/swimming";
+import type { SwimPr, SwimTime } from "@/types/swimming";
 import type { SwimStroke } from "@/lib/constants/swimming";
 import { isoWeekStart, todayISO, type ProgressPoint } from "@/lib/gym/derive";
 
@@ -61,13 +61,41 @@ export function swimTimesThisWeek(times: SwimTime[]): number {
   return times.filter((t) => t.session_date >= monday).length;
 }
 
-/** "1:23.45" for anything a minute or over, otherwise a bare "23.45" —
- * how swim times are actually read, instead of a raw seconds count. */
+/** "19m 00.00s" for anything a minute or over, otherwise a bare
+ * "23.40s". Deliberately spelled-out units, not "19:00.00" — now that
+ * events go up to 1000m, two-digit-minutes swim times read exactly
+ * like a clock time (19:00 looks like 7pm, not 19 minutes), which a
+ * short pool-length time like "1:23" never did. */
 export function formatSwimTime(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds - minutes * 60;
-  if (minutes === 0) return seconds.toFixed(2);
-  return `${minutes}:${seconds.toFixed(2).padStart(5, "0")}`;
+  if (minutes === 0) return `${seconds.toFixed(2)}s`;
+  return `${minutes}m ${seconds.toFixed(2).padStart(5, "0")}s`;
+}
+
+/** Pace normalized to "time per 100m" — the standard way swimmers
+ * compare effort across different event distances, the same role
+ * Running's seconds-per-km pace plays there. */
+export function swimPacePer100m(timeSeconds: number, distanceM: number): number {
+  return (timeSeconds / distanceM) * 100;
+}
+
+/** Just the current PB per (stroke, distance) event, out of the full PR
+ * history — swim_prs is an append-only log, same reasoning as Gym's
+ * latestPrPerExercise: a PR is only ever inserted when it beats the
+ * prior one, so the most recent row per event is always its best.
+ * Assumes `prs` is already sorted most-recent-first (what getSwimPrs
+ * returns). */
+export function latestPrPerEvent(prs: SwimPr[]): SwimPr[] {
+  const seen = new Set<string>();
+  const result: SwimPr[] = [];
+  for (const pr of prs) {
+    const key = eventKey(pr.stroke, pr.distance_m);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(pr);
+  }
+  return result;
 }
 
 /** Ordinary least squares of time (seconds) against weeks-since-first-

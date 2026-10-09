@@ -14,3 +14,16 @@ export const getRuns = cache(async (userId: string) => {
     .order("created_at", { ascending: true });
   return data ?? [];
 });
+
+/** Every running PR the user has ever hit, most recent first — same
+ * append-only convention as Gym's getExercisePrs. */
+export const getRunningPrs = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("running_prs")
+    .select("*")
+    .eq("user_id", userId)
+    .order("session_date", { ascending: false })
+    .order("created_at", { ascending: false });
+  return data ?? [];
+});

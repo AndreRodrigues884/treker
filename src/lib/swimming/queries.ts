@@ -16,6 +16,19 @@ export const getSwimTimes = cache(async (userId: string) => {
   return data ?? [];
 });
 
+/** Every swim PR the user has ever hit, most recent first — same
+ * append-only convention as Gym's getExercisePrs. */
+export const getSwimPrs = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("swim_prs")
+    .select("*")
+    .eq("user_id", userId)
+    .order("session_date", { ascending: false })
+    .order("created_at", { ascending: false });
+  return data ?? [];
+});
+
 /** One row per (stroke, distance) the user has set a goal for — small
  * and cheap enough to fetch in full, same reasoning as getSwimTimes. */
 export const getSwimGoals = cache(async (userId: string) => {

@@ -6,6 +6,8 @@ import { saveSessionAction, type GymFormResult, type PrAchieved } from "@/lib/ac
 import { SpinnerIcon } from "@/components/ui/icons";
 import type { MuscleGroup } from "@/lib/constants/gym";
 
+const FORM_ID = "save-session-form";
+
 export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup }) {
   const { pending, clearPending } = useWorkoutSession();
   const count = Object.keys(pending).length;
@@ -35,11 +37,11 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
 
   return (
     <>
-      <form action={formAction} className="flex flex-col items-end gap-2">
+      <form id={FORM_ID} action={formAction} className="flex flex-col items-end gap-2">
         <button
           type="submit"
           disabled={isPending || count === 0}
-          className="flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-3 text-xs font-semibold text-zinc-950 transition hover:brightness-110 disabled:opacity-40"
+          className="hidden items-center gap-2 rounded-xl bg-cyan-500 px-4 py-3 text-xs font-semibold text-zinc-950 transition hover:brightness-110 disabled:opacity-40 md:flex"
         >
           {isPending && <SpinnerIcon className="h-4 w-4" />}
           {isPending ? "Saving…" : "Save session"}
@@ -55,6 +57,33 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
           </p>
         )}
       </form>
+
+      {/* A second submit button for the same form (HTML allows a
+       * button to target a form by id from anywhere in the DOM) — the
+       * only "Save session" control on mobile (the one above is
+       * md:flex, hidden below that breakpoint), fixed to the bottom and
+       * only shown once there's actually something staged, so it can't
+       * be scrolled out of view while working through a long exercise
+       * list. This is what was really behind a user losing a whole
+       * session: not that the header button was too small, but that it
+       * had scrolled off-screen by the time they finished their last
+       * set. */}
+      {count > 0 && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-700 bg-slate-900/95 p-3 backdrop-blur-sm md:hidden"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        >
+          <button
+            type="submit"
+            form={FORM_ID}
+            disabled={isPending}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-zinc-950 transition hover:brightness-110 disabled:opacity-40"
+          >
+            {isPending && <SpinnerIcon className="h-4 w-4" />}
+            {isPending ? "Saving…" : "Save session"}
+          </button>
+        </div>
+      )}
 
       {showAchievements && state?.status === "success" && (
         <AchievementsModal

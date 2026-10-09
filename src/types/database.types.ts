@@ -291,6 +291,36 @@ export type Database = {
         }
         Relationships: []
       }
+      running_prs: {
+        Row: {
+          created_at: string
+          distance_km: number
+          distance_value: string
+          duration_seconds: number
+          id: string
+          session_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance_km: number
+          distance_value: string
+          duration_seconds: number
+          id?: string
+          session_date: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          distance_km?: number
+          distance_value?: string
+          duration_seconds?: number
+          id?: string
+          session_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       runs: {
         Row: {
           created_at: string
@@ -347,6 +377,36 @@ export type Database = {
           stroke?: Database["public"]["Enums"]["swim_stroke"]
           target_seconds?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      swim_prs: {
+        Row: {
+          created_at: string
+          distance_m: number
+          id: string
+          session_date: string
+          stroke: Database["public"]["Enums"]["swim_stroke"]
+          time_seconds: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance_m: number
+          id?: string
+          session_date: string
+          stroke: Database["public"]["Enums"]["swim_stroke"]
+          time_seconds: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          distance_m?: number
+          id?: string
+          session_date?: string
+          stroke?: Database["public"]["Enums"]["swim_stroke"]
+          time_seconds?: number
           user_id?: string
         }
         Relationships: []

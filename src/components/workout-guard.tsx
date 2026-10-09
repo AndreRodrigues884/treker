@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { LeaveModal } from "@/components/dashboard/leave-modal";
 
@@ -52,6 +52,24 @@ export function WorkoutGuardProvider({
     router.push(pendingHref);
     setPendingHref(null);
   }
+
+  // Covers what `navigate()` can't: closing the tab, refreshing, typing
+  // a new URL, or switching apps on mobile (where the OS may later kill
+  // the backgrounded tab outright). Browsers ignore any custom message
+  // and show their own generic "leave site?" prompt — this just has to
+  // call preventDefault to trigger it. Mobile browsers routinely skip
+  // beforeunload entirely on app-switch, which is exactly why the
+  // localStorage backup (session-context.tsx) exists as a second layer,
+  // not a replacement for this.
+  useEffect(() => {
+    if (!isDirty) return;
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = ""; // older engines need this set too to show the prompt
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
 
   // This wraps the entire dashboard shell (sidebar + every page), so an
   // unmemoized value here means every consumer everywhere — sidebar,

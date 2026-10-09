@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   bestSwimTime,
   formatSwimTime,
+  latestPrPerEvent,
   latestSwimTime,
   swimEventsWithData,
   swimGoalProgress,
+  swimPacePer100m,
   swimTimeHistory,
 } from "./derive";
-import type { SwimTime } from "@/types/swimming";
+import type { SwimPr, SwimTime } from "@/types/swimming";
 import type { ProgressPoint } from "@/lib/gym/derive";
 
 function makeTime(overrides: Partial<SwimTime>): SwimTime {
@@ -20,6 +22,19 @@ function makeTime(overrides: Partial<SwimTime>): SwimTime {
     session_date: "2026-01-01",
     created_at: "",
     updated_at: "",
+    ...overrides,
+  };
+}
+
+function makeSwimPr(overrides: Partial<SwimPr>): SwimPr {
+  return {
+    id: "id",
+    user_id: "user",
+    stroke: "freestyle",
+    distance_m: 100,
+    time_seconds: 80,
+    session_date: "2026-01-01",
+    created_at: "",
     ...overrides,
   };
 }
@@ -111,17 +126,44 @@ describe("bestSwimTime / latestSwimTime", () => {
 });
 
 describe("formatSwimTime", () => {
-  it("formats under a minute as bare seconds", () => {
-    expect(formatSwimTime(23.4)).toBe("23.40");
+  it("formats under a minute as bare seconds with a unit", () => {
+    expect(formatSwimTime(23.4)).toBe("23.40s");
   });
 
-  it("formats a minute or over as M:SS.ss, zero-padded", () => {
-    expect(formatSwimTime(65.3)).toBe("1:05.30");
-    expect(formatSwimTime(83.45)).toBe("1:23.45");
+  it("formats a minute or over with spelled-out units, zero-padded seconds", () => {
+    expect(formatSwimTime(65.3)).toBe("1m 05.30s");
+    expect(formatSwimTime(83.45)).toBe("1m 23.45s");
   });
 
-  it("handles a large multi-minute time", () => {
-    expect(formatSwimTime(725.07)).toBe("12:05.07");
+  it("handles a large multi-minute time without reading like a clock time", () => {
+    expect(formatSwimTime(725.07)).toBe("12m 05.07s");
+    // The exact bug report: 19:00.00 looked like 7pm, not 19 minutes.
+    expect(formatSwimTime(1140)).toBe("19m 00.00s");
+  });
+});
+
+describe("swimPacePer100m", () => {
+  it("scales time to a 100m-equivalent pace", () => {
+    expect(swimPacePer100m(90, 100)).toBe(90); // already 100m, unchanged
+    expect(swimPacePer100m(180, 200)).toBe(90); // 200m in 3:00 -> 1:30/100m
+    expect(swimPacePer100m(22.5, 25)).toBe(90); // 25m in 22.5s -> 1:30/100m
+  });
+});
+
+describe("latestPrPerEvent", () => {
+  it("keeps only the first (most recent) row per (stroke, distance) event", () => {
+    // Already sorted most-recent-first, same as getSwimPrs returns.
+    const prs = [
+      makeSwimPr({ id: "free100-2", stroke: "freestyle", distance_m: 100, session_date: "2026-09-01" }),
+      makeSwimPr({ id: "back50-1", stroke: "backstroke", distance_m: 50, session_date: "2026-06-01" }),
+      makeSwimPr({ id: "free100-1", stroke: "freestyle", distance_m: 100, session_date: "2026-01-01" }),
+    ];
+    const latest = latestPrPerEvent(prs);
+    expect(latest.map((pr) => pr.id)).toEqual(["free100-2", "back50-1"]);
+  });
+
+  it("is empty with no PRs", () => {
+    expect(latestPrPerEvent([])).toEqual([]);
   });
 });
 

@@ -28,7 +28,12 @@ type StoredPending = {
 // data" or a genuinely new device, which is the right amount of
 // durability for a scratch pad that's meant to be flushed by "Save
 // session" anyway.
-const MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6h: generous for one gym visit, short enough not to resurrect a long-abandoned one.
+// A real report: a user filled in a whole session, forgot to tap "Save
+// session", and only noticed two days later — by which point the old 6h
+// cutoff had already silently thrown the backup away. 7 days comfortably
+// covers "missed a couple of gym days", while still not resurrecting a
+// genuinely abandoned, long-stale draft months later.
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 function storageKeyFor(userId: string, scopeKey: string) {
   return `treker:pending-session:${userId}:${scopeKey}`;

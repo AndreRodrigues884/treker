@@ -3,6 +3,7 @@
 import { SWIM_STROKES } from "@/lib/constants/swimming";
 import {
   formatSwimTime,
+  swimPacePer100m,
   swimTimeHistory,
   type SwimEvent,
 } from "@/lib/swimming/derive";
@@ -24,7 +25,6 @@ export function SwimEventCard({
   const strokeEntry = SWIM_STROKES.find((s) => s.value === event.stroke);
   const history = swimTimeHistory(times, event);
   const latest = history.at(-1)?.value;
-  const best = history.length ? Math.min(...history.map((p) => p.value)) : undefined;
 
   return (
     <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
@@ -43,9 +43,9 @@ export function SwimEventCard({
             <p className="text-xl font-bold text-cyan-300">
               {formatSwimTime(latest)}
             </p>
-            {best != null && best < latest && (
-              <p className="text-xs text-zinc-500">Best: {formatSwimTime(best)}</p>
-            )}
+            <p className="text-xs text-zinc-500">
+              {formatSwimTime(swimPacePer100m(latest, event.distanceM))} / 100m
+            </p>
           </div>
         )}
       </div>

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   formatDuration,
   formatPace,
+  latestPrPerDistance,
   matchStandardDistance,
+  mostRecentRun,
   pace,
   paceHistory,
   personalBests,
@@ -12,7 +14,20 @@ import {
   weeklyDistanceHistory,
 } from "./derive";
 import { isoWeekStart } from "@/lib/gym/derive";
-import type { Run } from "@/types/running";
+import type { Run, RunningPr } from "@/types/running";
+
+function makeRunningPr(overrides: Partial<RunningPr>): RunningPr {
+  return {
+    id: "id",
+    user_id: "user",
+    distance_value: "5k",
+    distance_km: 5,
+    duration_seconds: 1500,
+    session_date: "2026-01-01",
+    created_at: "",
+    ...overrides,
+  };
+}
 
 function makeRun(overrides: Partial<Run>): Run {
   return {
@@ -51,6 +66,29 @@ describe("pace", () => {
   it("is duration divided by distance", () => {
     const run = makeRun({ distance_km: 5, duration_seconds: 1500 });
     expect(pace(run)).toBe(300); // 5:00/km
+  });
+});
+
+describe("mostRecentRun", () => {
+  it("is the run with the latest session_date", () => {
+    const runs = [
+      makeRun({ id: "a", session_date: "2026-01-01" }),
+      makeRun({ id: "b", session_date: "2026-01-15" }),
+      makeRun({ id: "c", session_date: "2026-01-08" }),
+    ];
+    expect(mostRecentRun(runs)?.id).toBe("b");
+  });
+
+  it("breaks same-day ties by logged order (created_at)", () => {
+    const runs = [
+      makeRun({ id: "a", session_date: "2026-01-01", created_at: "2026-01-01T10:00:00Z" }),
+      makeRun({ id: "b", session_date: "2026-01-01", created_at: "2026-01-01T09:00:00Z" }),
+    ];
+    expect(mostRecentRun(runs)?.id).toBe("a");
+  });
+
+  it("is null with no runs", () => {
+    expect(mostRecentRun([])).toBeNull();
   });
 });
 
@@ -135,6 +173,23 @@ describe("runsForDistance", () => {
       makeRun({ id: "c", distance_km: 10 }),
     ];
     expect(runsForDistance(runs, fiveK).map((r) => r.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("latestPrPerDistance", () => {
+  it("keeps only the first (most recent) row per distance", () => {
+    // Already sorted most-recent-first, same as getRunningPrs returns.
+    const prs = [
+      makeRunningPr({ id: "5k-2", distance_value: "5k", session_date: "2026-09-01" }),
+      makeRunningPr({ id: "10k-1", distance_value: "10k", session_date: "2026-06-01" }),
+      makeRunningPr({ id: "5k-1", distance_value: "5k", session_date: "2026-01-01" }),
+    ];
+    const latest = latestPrPerDistance(prs);
+    expect(latest.map((pr) => pr.id)).toEqual(["5k-2", "10k-1"]);
+  });
+
+  it("is empty with no PRs", () => {
+    expect(latestPrPerDistance([])).toEqual([]);
   });
 });
 

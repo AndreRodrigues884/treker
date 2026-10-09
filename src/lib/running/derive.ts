@@ -1,4 +1,4 @@
-import type { Run } from "@/types/running";
+import type { Run, RunningPr } from "@/types/running";
 import { STANDARD_DISTANCES, type StandardDistance } from "@/lib/constants/running";
 import { isoWeekStart, todayISO, type ProgressPoint } from "@/lib/gym/derive";
 
@@ -39,6 +39,20 @@ export function paceHistory(runs: Run[]): ProgressPoint[] {
       return a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
     })
     .map((r) => ({ date: r.session_date, value: pace(r) }));
+}
+
+/** The most recently logged run, by the same (date, then logged-order)
+ * sort paceHistory uses — the run a card's "current" stats should read
+ * from, so they always describe one real, specific run rather than an
+ * aggregate. */
+export function mostRecentRun(runs: Run[]): Run | null {
+  if (runs.length === 0) return null;
+  return [...runs].sort((a, b) => {
+    if (a.session_date !== b.session_date) {
+      return a.session_date < b.session_date ? -1 : 1;
+    }
+    return a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
+  }).at(-1)!;
 }
 
 export type WeekDistance = { weekStart: string; distanceKm: number };
@@ -124,4 +138,21 @@ export function personalBests(runs: Run[]): PersonalBest[] {
   return STANDARD_DISTANCES.map((d) => bestByDistance.get(d.value)).filter(
     (pb): pb is PersonalBest => pb != null,
   );
+}
+
+/** Just the current PB per standard distance, out of the full PR
+ * history — running_prs is an append-only log, same reasoning as Gym's
+ * latestPrPerExercise: a PR is only ever inserted when it beats the
+ * prior one, so the most recent row per distance is always its best.
+ * Assumes `prs` is already sorted most-recent-first (what
+ * getRunningPrs returns). */
+export function latestPrPerDistance(prs: RunningPr[]): RunningPr[] {
+  const seen = new Set<string>();
+  const result: RunningPr[] = [];
+  for (const pr of prs) {
+    if (seen.has(pr.distance_value)) continue;
+    seen.add(pr.distance_value);
+    result.push(pr);
+  }
+  return result;
 }

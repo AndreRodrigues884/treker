@@ -1,25 +1,27 @@
 "use client";
 
-import { formatPace } from "@/lib/running/derive";
+import { formatDuration, formatPace, mostRecentRun, pace, paceHistory } from "@/lib/running/derive";
 import type { StandardDistance } from "@/lib/constants/running";
 import { ProgressChart } from "@/components/gym/progress-chart";
-import type { ProgressPoint } from "@/lib/gym/derive";
+import type { Run } from "@/types/running";
 
 const EMERALD = "#34d399";
 
 /** One card per standard distance — mirrors SwimEventCard's per-event
- * layout (header with latest/best, chart underneath) rather than a
- * picker across distances, so every distance you've actually run shows
- * its own trend at a glance. */
+ * layout (header with the latest run's time + pace, chart underneath)
+ * rather than a picker across distances, so every distance you've
+ * actually run shows its own trend at a glance. The header reads from
+ * one real run (the most recent) — time first, since that's the
+ * concrete thing you did, pace underneath as the derived number. */
 export function DistanceProgressCard({
   distance,
-  history,
+  runs,
 }: {
   distance: StandardDistance;
-  history: ProgressPoint[];
+  runs: Run[];
 }) {
-  const latest = history.at(-1)?.value;
-  const best = history.length ? Math.min(...history.map((p) => p.value)) : undefined;
+  const history = paceHistory(runs);
+  const latest = mostRecentRun(runs);
 
   return (
     <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
@@ -27,15 +29,15 @@ export function DistanceProgressCard({
         <div>
           <h3 className="font-semibold text-zinc-100">{distance.label}</h3>
           <p className="text-xs text-zinc-500">
-            {history.length} {history.length === 1 ? "run" : "runs"} logged
+            {runs.length} {runs.length === 1 ? "run" : "runs"} logged
           </p>
         </div>
-        {latest != null && (
+        {latest && (
           <div className="text-right">
-            <p className="text-xl font-bold text-emerald-300">{formatPace(latest)}</p>
-            {best != null && best < latest && (
-              <p className="text-xs text-zinc-500">Best: {formatPace(best)}</p>
-            )}
+            <p className="text-xl font-bold text-emerald-300">
+              {formatDuration(latest.duration_seconds)}
+            </p>
+            <p className="text-xs text-zinc-500">{formatPace(pace(latest))}</p>
           </div>
         )}
       </div>

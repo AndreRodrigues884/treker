@@ -4,10 +4,18 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { swimTimeSchema } from "@/lib/validation/swimming";
 import type { SwimStroke } from "@/lib/constants/swimming";
+import { getSwimTimes } from "@/lib/swimming/queries";
+import { bestSwimTime } from "@/lib/swimming/derive";
+
+export type SwimPrAchieved = {
+  stroke: SwimStroke;
+  distanceM: number;
+  timeSeconds: number;
+};
 
 export type SwimFormResult =
   | { status: "error"; message: string }
-  | { status: "success" }
+  | { status: "success"; pr?: SwimPrAchieved }
   | null;
 
 /** Every logged time is its own row/attempt — training often means
@@ -35,18 +43,46 @@ export async function logSwimTimeAction(
   if (!user) return { status: "error", message: "Not authenticated." };
 
   const timeSeconds = parsed.data.minutes * 60 + parsed.data.seconds;
+  const sessionDate = new Date().toISOString().slice(0, 10);
+  const event = { stroke: parsed.data.stroke, distanceM: parsed.data.distanceM };
+
+  // --- Work out whether this is a new PR from the history as it stood
+  // BEFORE this save, so a time can only ever PR against what actually
+  // came before it, same reasoning as Gym's saveSessionAction. ---
+  const priorTimes = await getSwimTimes(user.id);
+  const priorBest = bestSwimTime(priorTimes, event) ?? Infinity;
+  const isPr = timeSeconds < priorBest;
 
   const { error } = await supabase.from("swim_times").insert({
     user_id: user.id,
     stroke: parsed.data.stroke,
     distance_m: parsed.data.distanceM,
     time_seconds: timeSeconds,
-    session_date: new Date().toISOString().slice(0, 10),
+    session_date: sessionDate,
   });
   if (error) return { status: "error", message: error.message };
 
+  // Best-effort: the time itself already saved above, so a hiccup
+  // recording a PR shouldn't turn a real, successful save into an error.
+  if (isPr) {
+    await supabase.from("swim_prs").insert({
+      user_id: user.id,
+      stroke: parsed.data.stroke,
+      distance_m: parsed.data.distanceM,
+      time_seconds: timeSeconds,
+      session_date: sessionDate,
+    });
+  }
+
   revalidatePath("/dashboard/swimming");
-  return { status: "success" };
+  if (isPr) revalidatePath("/dashboard/achievements");
+
+  return {
+    status: "success",
+    ...(isPr && {
+      pr: { stroke: parsed.data.stroke, distanceM: parsed.data.distanceM, timeSeconds },
+    }),
+  };
 }
 
 /** A goal is a single current value, not a log — re-submitting for the

@@ -68,7 +68,7 @@ export default async function MuscleGroupPage({
       scopeKey={group}
       validExerciseIds={exercises.map((e) => e.id)}
     >
-      <div className="space-y-6">
+      <div className="space-y-6 pb-20 md:pb-0">
         <div className="flex flex-nowrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <Link
