@@ -5,6 +5,14 @@ import { MODALITIES, type Modality } from "@/lib/constants/onboarding";
 
 export type WeeklyRingSegment = { modality: Modality; count: number };
 
+// Internal coordinate system only — the ring's actual on-screen size is
+// controlled purely by CSS (the wrapper's responsive width/height
+// classes below), so this never needs to change. The SVG scales via
+// its viewBox, and badges are positioned in percentages of this same
+// space, so everything shrinks together instead of the ring stacking
+// under the text on a narrow screen (the point of keeping it a fixed
+// side-by-side layout: it should always sit next to the text, just
+// smaller, never dropped below it).
 const SIZE = 240;
 const CENTER = SIZE / 2;
 const RADIUS = 96;
@@ -26,13 +34,19 @@ function polarToXY(angleDeg: number, radius: number) {
   return { x: CENTER + radius * Math.cos(rad), y: CENTER + radius * Math.sin(rad) };
 }
 
+function pct(value: number) {
+  return `${(value / SIZE) * 100}%`;
+}
+
 /**
  * This week's training, as one ring — one arc per tracked modality,
  * sized by its share of this week's sessions, with the total in the
  * center. Replaces the old flat row of three numbers with a single
  * glanceable shape, and animates in on mount (arcs draw in, badges pop,
  * the center count ticks up) for the "more alive" feel asked for,
- * while staying within the app's existing dark card look.
+ * while staying within the app's existing dark card look. Always sits
+ * beside the greeting text, even on a phone — it shrinks through the
+ * responsive size classes below rather than ever stacking underneath.
  */
 export function WeeklyRing({ segments }: { segments: WeeklyRingSegment[] }) {
   const total = segments.reduce((sum, s) => sum + s.count, 0);
@@ -115,8 +129,8 @@ export function WeeklyRing({ segments }: { segments: WeeklyRingSegment[] }) {
   }, []);
 
   return (
-    <div style={{ position: "relative", width: SIZE, height: SIZE, flexShrink: 0 }}>
-      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ display: "block" }}>
+    <div className="relative aspect-square h-[84px] w-[84px] shrink-0 sm:h-40 sm:w-40 md:h-60 md:w-60">
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="block h-full w-full">
         <circle
           cx={CENTER}
           cy={CENTER}
@@ -146,8 +160,10 @@ export function WeeklyRing({ segments }: { segments: WeeklyRingSegment[] }) {
       </svg>
 
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-        <span className="text-4xl font-bold text-zinc-100">{displayCount}</span>
-        <span className="text-xs text-zinc-400">
+        <span className="text-lg font-bold text-zinc-100 sm:text-2xl md:text-4xl">
+          {displayCount}
+        </span>
+        <span className="text-center text-[8px] leading-tight text-zinc-400 sm:text-[10px] md:text-xs">
           {total === 1 ? "workout" : "workouts"} this week
         </span>
       </div>
@@ -157,20 +173,20 @@ export function WeeklyRing({ segments }: { segments: WeeklyRingSegment[] }) {
           key={arc.modality}
           style={{
             position: "absolute",
-            left: arc.badgePos.x,
-            top: arc.badgePos.y,
+            left: pct(arc.badgePos.x),
+            top: pct(arc.badgePos.y),
             transform: mounted
               ? "translate(-50%, -50%) scale(1)"
               : "translate(-50%, -50%) scale(.5)",
             opacity: mounted ? 1 : 0,
             transition: `opacity .4s ease-out ${0.5 + i * 0.15}s, transform .4s cubic-bezier(.22,1,.36,1) ${0.5 + i * 0.15}s`,
           }}
-          className={`flex items-center gap-1 rounded-full border bg-slate-900/90 px-2.5 py-1 ${arc.badge}`}
+          className={`flex items-center gap-0.5 rounded-full border bg-slate-900/90 px-1 py-0.5 sm:gap-1 sm:px-2 sm:py-1 ${arc.badge}`}
         >
-          <span aria-hidden className="text-xs">
+          <span aria-hidden className="text-[8px] sm:text-xs">
             {arc.icon}
           </span>
-          <span className="text-xs font-bold">{arc.count}</span>
+          <span className="text-[8px] font-bold sm:text-xs">{arc.count}</span>
         </div>
       ))}
     </div>

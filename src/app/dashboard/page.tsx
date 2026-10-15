@@ -119,14 +119,17 @@ async function OverviewHero({ user }: { user: User | null }) {
         className={`pointer-events-none absolute -bottom-20 -right-10 h-56 w-56 rounded-full blur-3xl transition-colors duration-700 ${theme.blob2}`}
       />
 
-      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-        <div>
+      {/* Always a row, even on a phone — the ring shrinks through its
+       * own responsive size classes instead of ever dropping below the
+       * text, so it's always visible beside the greeting. */}
+      <div className="relative flex flex-row items-center justify-between gap-3 sm:gap-6">
+        <div className="min-w-0 flex-1">
           <p
             className={`mb-2 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${theme.badge}`}
           >
             {title}
           </p>
-          <h1 className="text-2xl font-bold">Welcome back</h1>
+          <h1 className="text-xl font-bold sm:text-2xl">Welcome back</h1>
           {user?.email && (
             <Greeting name={getDisplayName(user)} email={user.email} />
           )}
