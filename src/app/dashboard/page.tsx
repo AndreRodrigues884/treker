@@ -7,12 +7,11 @@ import { getSwimTimes } from "@/lib/swimming/queries";
 import { swimTimesThisWeek } from "@/lib/swimming/derive";
 import { getRuns } from "@/lib/running/queries";
 import { runsThisWeek } from "@/lib/running/derive";
-import { getBodyweightLogs } from "@/lib/bodyweight/queries";
 import { activeDaysRecently, trainingTitle, type TrainingTier } from "@/lib/dashboard/derive";
 import { MODALITIES } from "@/lib/constants/onboarding";
 import { Greeting } from "@/components/dashboard/greeting";
 import { ModalityCard } from "@/components/dashboard/modality-card";
-import { BodyweightCard } from "@/components/dashboard/bodyweight-card";
+import { WeeklyRing, type WeeklyRingSegment } from "@/components/dashboard/weekly-ring";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
 // One visual theme per training tier — the "gamified" part of the
@@ -76,20 +75,8 @@ export default async function DashboardPage() {
       <Suspense fallback={<SectionSpinner label="Loading your modalities…" />}>
         <ModalityGrid userId={user?.id} />
       </Suspense>
-
-      {/* Not tied to any one modality — shown regardless of which
-       * sports the user tracks, so it gets its own Suspense boundary
-       * rather than living inside ModalityGrid. */}
-      <Suspense fallback={<SectionSpinner label="Loading your bodyweight…" className="h-40" />}>
-        <BodyweightSection userId={user?.id} />
-      </Suspense>
     </div>
   );
-}
-
-async function BodyweightSection({ userId }: { userId: string | undefined }) {
-  const logs = userId ? await getBodyweightLogs(userId) : [];
-  return <BodyweightCard logs={logs} />;
 }
 
 async function OverviewHero({ user }: { user: User | null }) {
@@ -114,6 +101,12 @@ async function OverviewHero({ user }: { user: User | null }) {
   const activeDays = activeDaysRecently(gymSets, runs, swimTimes);
   const { title, subtitle, tier } = trainingTitle(activeDays);
   const theme = TIER_THEME[tier];
+
+  const segments: WeeklyRingSegment[] = [
+    tracksGym && { modality: "gym" as const, count: workouts },
+    tracksRunning && { modality: "running" as const, count: runsThisWk },
+    tracksSwimming && { modality: "swimming" as const, count: swims },
+  ].filter((s): s is WeeklyRingSegment => s !== false);
 
   return (
     <div
@@ -140,40 +133,7 @@ async function OverviewHero({ user }: { user: User | null }) {
           <p className="mt-1 text-sm text-zinc-400">{subtitle}</p>
         </div>
 
-        {(tracksGym || tracksSwimming || tracksRunning) && (
-          <div className="flex flex-wrap gap-6">
-            {tracksGym && (
-              <div className="text-left sm:text-right">
-                <p className="bg-linear-to-r from-amber-300 via-orange-400 to-pink-500 bg-clip-text text-4xl font-bold text-transparent">
-                  {workouts}
-                </p>
-                <p className="text-sm text-zinc-400">
-                  {workouts === 1 ? "workout" : "workouts"} this week
-                </p>
-              </div>
-            )}
-            {tracksSwimming && (
-              <div className="text-left sm:text-right">
-                <p className="bg-linear-to-r from-cyan-300 via-cyan-400 to-blue-500 bg-clip-text text-4xl font-bold text-transparent">
-                  {swims}
-                </p>
-                <p className="text-sm text-zinc-400">
-                  {swims === 1 ? "time" : "times"} logged this week
-                </p>
-              </div>
-            )}
-            {tracksRunning && (
-              <div className="text-left sm:text-right">
-                <p className="bg-linear-to-r from-emerald-300 via-emerald-400 to-teal-500 bg-clip-text text-4xl font-bold text-transparent">
-                  {runsThisWk}
-                </p>
-                <p className="text-sm text-zinc-400">
-                  {runsThisWk === 1 ? "run" : "runs"} this week
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+        {segments.length > 0 && <WeeklyRing segments={segments} />}
       </div>
     </div>
   );

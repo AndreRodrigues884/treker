@@ -17,6 +17,7 @@ import { runsThisWeek, totalDistanceThisWeek, weeklyDistanceHistory } from "@/li
 import { getSwimTimes } from "@/lib/swimming/queries";
 import { swimEventsWithData, swimTimeHistory } from "@/lib/swimming/derive";
 import { SWIM_STROKES } from "@/lib/constants/swimming";
+import { getBodyweightLogs } from "@/lib/bodyweight/queries";
 import type { Modality } from "@/lib/constants/onboarding";
 import { MuscleGroupVolumeChart } from "@/components/gym/muscle-group-volume-chart";
 import { ProgressChart } from "@/components/gym/progress-chart";
@@ -25,6 +26,7 @@ import { WeeklySessionsChart } from "@/components/statistics/weekly-sessions-cha
 import { SwimTimesCard } from "@/components/statistics/swim-times-card";
 import { DeloadCard } from "@/components/statistics/deload-card";
 import { StatisticsFilter, type StatSection } from "@/components/statistics/statistics-filter";
+import { BodyweightCard } from "@/components/dashboard/bodyweight-card";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
 const VIOLET = "#a78bfa";
@@ -124,9 +126,22 @@ export default async function StatisticsPage() {
         <p className="text-zinc-400">Your numbers, across every sport you track.</p>
       </div>
 
+      {/* Cross-cutting, not tied to one modality — shown regardless of
+       * which sports are tracked or which filter is active, so it sits
+       * outside StatisticsFilter's modality-scoped sections rather than
+       * being tagged under one of them. */}
+      <Suspense fallback={<SectionSpinner label="Loading your bodyweight…" className="h-40" />}>
+        <BodyweightSection userId={user.id} />
+      </Suspense>
+
       <StatisticsFilter availableModalities={availableModalities} sections={sections} />
     </div>
   );
+}
+
+async function BodyweightSection({ userId }: { userId: string }) {
+  const logs = await getBodyweightLogs(userId);
+  return <BodyweightCard logs={logs} />;
 }
 
 async function TotalStrengthSection({ userId }: { userId: string }) {
