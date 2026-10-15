@@ -133,7 +133,11 @@ async function OverviewHero({ user }: { user: User | null }) {
           {user?.email && (
             <Greeting name={getDisplayName(user)} email={user.email} />
           )}
-          <p className="mt-1 text-sm text-zinc-400">{subtitle}</p>
+          {/* Dropped on mobile — with the ring already explaining the
+           * week at a glance there, this line was just crowding a
+           * narrow column; it still shows from sm: up where there's
+           * room for it. */}
+          <p className="mt-1 hidden text-sm text-zinc-400 sm:block">{subtitle}</p>
         </div>
 
         {segments.length > 0 && <WeeklyRing segments={segments} />}

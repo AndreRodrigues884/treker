@@ -129,7 +129,7 @@ export function WeeklyRing({ segments }: { segments: WeeklyRingSegment[] }) {
   }, []);
 
   return (
-    <div className="relative aspect-square h-[84px] w-[84px] shrink-0 sm:h-40 sm:w-40 md:h-60 md:w-60">
+    <div className="relative aspect-square h-30 w-30 shrink-0 sm:h-40 sm:w-40 md:h-60 md:w-60">
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="block h-full w-full">
         <circle
           cx={CENTER}
@@ -160,10 +160,14 @@ export function WeeklyRing({ segments }: { segments: WeeklyRingSegment[] }) {
       </svg>
 
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-        <span className="text-lg font-bold text-zinc-100 sm:text-2xl md:text-4xl">
+        <span className="text-3xl font-bold text-zinc-100 sm:text-2xl md:text-4xl">
           {displayCount}
         </span>
-        <span className="text-center text-[8px] leading-tight text-zinc-400 sm:text-[10px] md:text-xs">
+        {/* The label fits comfortably once the ring is big enough (from
+         * sm: up) — at mobile size there isn't room for a second line
+         * without it spilling past the ring's inner edge, so the big
+         * number stands alone there; still read by screen readers. */}
+        <span className="sr-only text-center text-[10px] leading-tight text-zinc-400 sm:not-sr-only sm:text-[10px] md:text-xs">
           {total === 1 ? "workout" : "workouts"} this week
         </span>
       </div>
@@ -181,12 +185,12 @@ export function WeeklyRing({ segments }: { segments: WeeklyRingSegment[] }) {
             opacity: mounted ? 1 : 0,
             transition: `opacity .4s ease-out ${0.5 + i * 0.15}s, transform .4s cubic-bezier(.22,1,.36,1) ${0.5 + i * 0.15}s`,
           }}
-          className={`flex items-center gap-0.5 rounded-full border bg-slate-900/90 px-1 py-0.5 sm:gap-1 sm:px-2 sm:py-1 ${arc.badge}`}
+          className={`flex items-center gap-1 rounded-full border bg-slate-900/90 px-1.5 py-0.5 sm:gap-1 sm:px-2 sm:py-1 ${arc.badge}`}
         >
-          <span aria-hidden className="text-[8px] sm:text-xs">
+          <span aria-hidden className="text-[10px] sm:text-xs">
             {arc.icon}
           </span>
-          <span className="text-[8px] font-bold sm:text-xs">{arc.count}</span>
+          <span className="text-[10px] font-bold sm:text-xs">{arc.count}</span>
         </div>
       ))}
     </div>
