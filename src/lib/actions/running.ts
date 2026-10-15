@@ -93,3 +93,58 @@ export async function logRunAction(
 
   return { status: "success", ...(prAchieved && { pr: prAchieved }) };
 }
+
+/**
+ * Deletes exactly one run: the single most recent one, and only if
+ * `runId` still matches it — never an older entry, even if the id
+ * passed in is stale (e.g. a second tab logged a newer run after this
+ * page loaded). This is deliberately the only delete capability
+ * exposed for running: a narrow, safe "undo my last entry" rather than
+ * a general history editor, so a logging mistake (wrong distance,
+ * minutes/seconds mixed up) can be fixed without ever touching
+ * Supabase directly.
+ */
+export async function deleteLastRunAction(runId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: last } = await supabase
+    .from("runs")
+    .select("id")
+    .eq("user_id", user.id)
+    .order("session_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!last || last.id !== runId) return;
+
+  const { data: deleted } = await supabase
+    .from("runs")
+    .delete()
+    .eq("id", runId)
+    .eq("user_id", user.id)
+    .select("distance_km, duration_seconds, session_date")
+    .maybeSingle();
+
+  // The deleted run may have been recorded as a PR — a mistaken entry
+  // (e.g. minutes/seconds mixed up) can easily look like an implausible
+  // "record". Clean up the matching PR row too, so undoing the run
+  // doesn't leave a bogus achievement behind. Best-effort: the run
+  // itself is already gone either way.
+  if (deleted) {
+    await supabase
+      .from("running_prs")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("session_date", deleted.session_date)
+      .eq("distance_km", deleted.distance_km)
+      .eq("duration_seconds", deleted.duration_seconds);
+  }
+
+  revalidatePath("/dashboard/running");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/achievements");
+}

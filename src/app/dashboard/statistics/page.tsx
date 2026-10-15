@@ -8,9 +8,9 @@ import {
   deloadExercises,
   oneRepMaxHistory,
   sessionsPerWeekHistory,
-  setsPerMuscleGroup,
   totalStrength,
   totalStrengthHistory,
+  workoutsPerMuscleGroup,
 } from "@/lib/gym/derive";
 import { getRuns } from "@/lib/running/queries";
 import { runsThisWeek, totalDistanceThisWeek, weeklyDistanceHistory } from "@/lib/running/derive";
@@ -209,12 +209,12 @@ async function VolumeSection({ userId }: { userId: string }) {
     getAllExercises(userId),
     getAllExerciseSets(userId),
   ]);
-  const volumeByGroup = setsPerMuscleGroup(exercises, sets, 8);
+  const volumeByGroup = workoutsPerMuscleGroup(exercises, sets, 8);
 
   return (
     <StatCard
       title="Volume per Muscle Group"
-      subtitle="Sets logged per muscle group · last 8 weeks"
+      subtitle="Workouts logged per muscle group · last 8 weeks"
     >
       <MuscleGroupVolumeChart data={volumeByGroup} />
     </StatCard>

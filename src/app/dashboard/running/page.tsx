@@ -7,6 +7,7 @@ import { formatDuration, formatPace, pace, runsForDistance } from "@/lib/running
 import { STANDARD_DISTANCES } from "@/lib/constants/running";
 import { LogRunForm } from "@/components/running/log-run-form";
 import { DistanceProgressCard } from "@/components/running/distance-progress-card";
+import { DeleteLastRunButton } from "@/components/running/delete-last-run-button";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
 export default async function RunningPage() {
@@ -66,7 +67,15 @@ async function RunningStats({ userId }: { userId: string }) {
       ))}
 
       <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
-        <h2 className="font-semibold text-zinc-100">Recent Runs</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-semibold text-zinc-100">Recent Runs</h2>
+          {recent[0] && (
+            <DeleteLastRunButton
+              runId={recent[0].id}
+              message={`This removes your most recent run: ${Number(recent[0].distance_km)}km in ${formatDuration(recent[0].duration_seconds)} on ${recent[0].session_date}. This can't be undone.`}
+            />
+          )}
+        </div>
         <ul className="space-y-2">
           {recent.map((run) => (
             <li

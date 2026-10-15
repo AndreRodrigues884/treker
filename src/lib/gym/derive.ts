@@ -209,11 +209,14 @@ export function totalStrengthHistory(
   });
 }
 
-export type MuscleGroupVolume = { muscleGroup: MuscleGroup; setsCount: number };
+export type MuscleGroupVolume = { muscleGroup: MuscleGroup; sessionsCount: number };
 
-/** Sets logged per muscle group, over the last `weeks` weeks (all 7
- * groups always present, zero-filled, so the chart never re-shapes). */
-export function setsPerMuscleGroup(
+/** Workouts (distinct session dates) logged per muscle group, over the
+ * last `weeks` weeks (all 7 groups always present, zero-filled, so the
+ * chart never re-shapes). Counts training days, not sets — a 10-set and
+ * a 3-set arm day both count as one workout here, same "workout" unit
+ * sessionsThisWeek/averageSessionsPerWeek already use. */
+export function workoutsPerMuscleGroup(
   exercises: Exercise[],
   sets: ExerciseSet[],
   weeks = 8,
@@ -223,16 +226,18 @@ export function setsPerMuscleGroup(
   const cutoffDate = cutoff.toISOString().slice(0, 10);
 
   const exerciseToGroup = new Map(exercises.map((e) => [e.id, e.muscle_group]));
-  const counts = new Map<MuscleGroup, number>();
+  const datesByGroup = new Map<MuscleGroup, Set<string>>();
   for (const s of sets) {
     if (s.session_date < cutoffDate) continue;
     const group = exerciseToGroup.get(s.exercise_id);
     if (!group) continue;
-    counts.set(group, (counts.get(group) ?? 0) + 1);
+    const dates = datesByGroup.get(group) ?? new Set<string>();
+    dates.add(s.session_date);
+    datesByGroup.set(group, dates);
   }
   return MUSCLE_GROUPS.map((m) => ({
     muscleGroup: m.value,
-    setsCount: counts.get(m.value) ?? 0,
+    sessionsCount: datesByGroup.get(m.value)?.size ?? 0,
   }));
 }
 

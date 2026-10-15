@@ -1,13 +1,16 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState, type FormEvent } from "react";
 import { logRunAction, type RunFormResult } from "@/lib/actions/running";
 import { STANDARD_DISTANCES } from "@/lib/constants/running";
-import { formatDuration } from "@/lib/running/derive";
+import { formatDuration, formatPace } from "@/lib/running/derive";
 import { SpinnerIcon } from "@/components/ui/icons";
 import { PrModal } from "@/components/ui/pr-modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 const initialState: RunFormResult = null;
+
+type Preview = { distanceKm: number; totalSeconds: number };
 
 /** A single run is one atomic entry (distance + duration) — no forced
  * picker step like Swimming's stroke/distance, since most training runs
@@ -18,6 +21,14 @@ const initialState: RunFormResult = null;
 export function LogRunForm() {
   const [state, formAction, pending] = useActionState(logRunAction, initialState);
   const [distanceKm, setDistanceKm] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  // Set right before requestSubmit() below, so the resulting (second)
+  // submit event skips the confirmation and actually reaches the
+  // server action. The browser only fires `submit` once native
+  // constraint validation (required/min/max) already passed, so by the
+  // time handleSubmit runs the fields below are safe to read as-is.
+  const skipConfirm = useRef(false);
+  const [preview, setPreview] = useState<Preview | null>(null);
 
   // Reacting to a new `state` identity during render (not an effect)
   // opens the modal exactly once per save that earned a PR — same
@@ -29,10 +40,39 @@ export function LogRunForm() {
     setShowPr(state?.status === "success" && state.pr != null);
   }
 
+  // A real report: a 25m/13.51s swim got logged as 13 minutes 51
+  // seconds by mistake (minutes/seconds mixed up), and the user had no
+  // way to undo it short of editing the database directly. Showing the
+  // parsed value back before it's saved — in the same unambiguous
+  // "23:45" / pace format the rest of the app reads — catches that kind
+  // of mistake (an implausible pace) before it ever reaches the
+  // database, same reasoning applied to Swimming's LogTimeForm below.
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    if (skipConfirm.current) {
+      skipConfirm.current = false;
+      return;
+    }
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    const distance = Number(data.get("distanceKm"));
+    const hours = Number(data.get("hours"));
+    const minutes = Number(data.get("minutes"));
+    const seconds = Number(data.get("seconds"));
+    setPreview({ distanceKm: distance, totalSeconds: hours * 3600 + minutes * 60 + seconds });
+  }
+
+  function handleConfirmSave() {
+    setPreview(null);
+    skipConfirm.current = true;
+    formRef.current?.requestSubmit();
+  }
+
   return (
     <>
       <form
+        ref={formRef}
         action={formAction}
+        onSubmit={handleSubmit}
         key={state?.status === "success" ? "done" : "editing"}
         className="space-y-4 rounded-2xl border border-slate-700 bg-slate-800/60 p-4"
       >
@@ -140,6 +180,17 @@ export function LogRunForm() {
           {pending ? "Saving…" : "Log run"}
         </button>
       </form>
+
+      {preview && (
+        <ConfirmModal
+          title="Confirm this run"
+          message={`${preview.distanceKm}km in ${formatDuration(preview.totalSeconds)} (pace ${formatPace(preview.totalSeconds / preview.distanceKm)}). Does that look right?`}
+          confirmLabel="Save"
+          cancelLabel="Edit"
+          onConfirm={handleConfirmSave}
+          onCancel={() => setPreview(null)}
+        />
+      )}
 
       {showPr && state?.status === "success" && state.pr && (
         <PrModal

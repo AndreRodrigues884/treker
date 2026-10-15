@@ -17,12 +17,12 @@ import {
   sessionsPerWeekHistory,
   sessionsThisWeek,
   setsForDate,
-  setsPerMuscleGroup,
   setsThisWeek,
   latestPrPerExercise,
   totalStrength,
   totalStrengthHistory,
   totalVolumeEver,
+  workoutsPerMuscleGroup,
 } from "./derive";
 import type { DeloadAcknowledgement, Exercise, ExercisePr, ExerciseSet } from "@/types/gym";
 
@@ -238,24 +238,39 @@ describe("latestPrPerExercise", () => {
   });
 });
 
-describe("setsPerMuscleGroup", () => {
-  it("counts sets within the window and zero-fills every muscle group", () => {
+describe("workoutsPerMuscleGroup", () => {
+  it("counts distinct workout days within the window and zero-fills every muscle group", () => {
     const bench = makeExercise({ id: "bench", muscle_group: "chest" });
+    const flye = makeExercise({ id: "flye", muscle_group: "chest" });
     const squat = makeExercise({ id: "squat", muscle_group: "legs" });
     const recentDate = todayISOForTest();
     const sets = [
+      // Two different chest exercises, same day — still one workout.
       makeSet({ exercise_id: "bench", session_date: recentDate }),
+      makeSet({ exercise_id: "flye", session_date: recentDate, set_number: 2 }),
       makeSet({ exercise_id: "squat", session_date: recentDate, set_number: 2 }),
       makeSet({ exercise_id: "bench", session_date: "2000-01-01" }), // way outside the window
     ];
-    const result = setsPerMuscleGroup([bench, squat], sets, 8);
+    const result = workoutsPerMuscleGroup([bench, flye, squat], sets, 8);
     const chest = result.find((r) => r.muscleGroup === "chest");
     const legs = result.find((r) => r.muscleGroup === "legs");
     const back = result.find((r) => r.muscleGroup === "back");
-    expect(chest?.setsCount).toBe(1);
-    expect(legs?.setsCount).toBe(1);
-    expect(back?.setsCount).toBe(0);
+    expect(chest?.sessionsCount).toBe(1);
+    expect(legs?.sessionsCount).toBe(1);
+    expect(back?.sessionsCount).toBe(0);
     expect(result).toHaveLength(7);
+  });
+
+  it("counts each distinct workout day separately, not the sets within it", () => {
+    const bench = makeExercise({ id: "bench", muscle_group: "chest" });
+    const sets = [
+      makeSet({ exercise_id: "bench", session_date: "2026-01-01" }),
+      makeSet({ exercise_id: "bench", session_date: "2026-01-01", set_number: 2 }),
+      makeSet({ exercise_id: "bench", session_date: "2026-01-01", set_number: 3 }),
+      makeSet({ exercise_id: "bench", session_date: "2026-01-08" }),
+    ];
+    const result = workoutsPerMuscleGroup([bench], sets, 52);
+    expect(result.find((r) => r.muscleGroup === "chest")?.sessionsCount).toBe(2);
   });
 });
 

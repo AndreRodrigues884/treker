@@ -90,6 +90,61 @@ export async function logSwimTimeAction(
  * Called directly from a client component via useTransition, same
  * plain-action convention as renameRoutineAction, rather than
  * useActionState — there's no multi-field form state to track here. */
+/**
+ * Deletes exactly one swim time: the single most recent one, and only
+ * if `swimTimeId` still matches it — never an older entry, even if the
+ * id passed in is stale (e.g. a second tab logged a newer time after
+ * this page loaded). Deliberately the only delete capability exposed
+ * for swimming: a narrow, safe "undo my last entry" rather than a
+ * general history editor — the real bug this fixes: a 25m swim in
+ * 13.51s got logged as 13 minutes 51 seconds by mistake, and the only
+ * way to remove it was to edit the database directly.
+ */
+export async function deleteLastSwimTimeAction(swimTimeId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: last } = await supabase
+    .from("swim_times")
+    .select("id")
+    .eq("user_id", user.id)
+    .order("session_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!last || last.id !== swimTimeId) return;
+
+  const { data: deleted } = await supabase
+    .from("swim_times")
+    .delete()
+    .eq("id", swimTimeId)
+    .eq("user_id", user.id)
+    .select("stroke, distance_m, time_seconds, session_date")
+    .maybeSingle();
+
+  // The deleted time may have been recorded as a PR — a mistaken entry
+  // can easily look like an implausible "record". Clean up the
+  // matching PR row too, so undoing the time doesn't leave a bogus
+  // achievement behind. Best-effort: the time itself is already gone
+  // either way.
+  if (deleted) {
+    await supabase
+      .from("swim_prs")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("session_date", deleted.session_date)
+      .eq("stroke", deleted.stroke)
+      .eq("distance_m", deleted.distance_m)
+      .eq("time_seconds", deleted.time_seconds);
+  }
+
+  revalidatePath("/dashboard/swimming");
+  revalidatePath("/dashboard/achievements");
+}
+
 export async function setSwimGoalAction(
   stroke: SwimStroke,
   distanceM: number,
