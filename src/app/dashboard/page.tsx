@@ -8,11 +8,48 @@ import { swimTimesThisWeek } from "@/lib/swimming/derive";
 import { getRuns } from "@/lib/running/queries";
 import { runsThisWeek } from "@/lib/running/derive";
 import { getBodyweightLogs } from "@/lib/bodyweight/queries";
+import { activeDaysRecently, trainingTitle, type TrainingTier } from "@/lib/dashboard/derive";
 import { MODALITIES } from "@/lib/constants/onboarding";
 import { Greeting } from "@/components/dashboard/greeting";
 import { ModalityCard } from "@/components/dashboard/modality-card";
 import { BodyweightCard } from "@/components/dashboard/bodyweight-card";
 import { SectionSpinner } from "@/components/ui/section-spinner";
+
+// One visual theme per training tier — the "gamified" part of the
+// title feature: the hero card's gradient/glow and the title badge
+// shift with it, so a more active stretch doesn't just read
+// differently, it *looks* different. "starting" deliberately matches
+// the card's original indigo/fuchsia look, so a brand-new or quiet
+// account isn't visually flagged as different, just invited back in.
+const TIER_THEME: Record<
+  TrainingTier,
+  { gradient: string; blob1: string; blob2: string; badge: string }
+> = {
+  intense: {
+    gradient: "from-slate-800 via-orange-900/50 to-slate-800",
+    blob1: "bg-orange-600/30",
+    blob2: "bg-red-600/20",
+    badge: "border-orange-400/40 bg-orange-500/10 text-orange-300",
+  },
+  regular: {
+    gradient: "from-slate-800 via-emerald-900/50 to-slate-800",
+    blob1: "bg-emerald-600/30",
+    blob2: "bg-teal-600/20",
+    badge: "border-emerald-400/40 bg-emerald-500/10 text-emerald-300",
+  },
+  building: {
+    gradient: "from-slate-800 via-cyan-900/50 to-slate-800",
+    blob1: "bg-cyan-600/30",
+    blob2: "bg-blue-600/20",
+    badge: "border-cyan-400/40 bg-cyan-500/10 text-cyan-300",
+  },
+  starting: {
+    gradient: "from-slate-800 via-indigo-900/50 to-slate-800",
+    blob1: "bg-indigo-600/30",
+    blob2: "bg-fuchsia-600/20",
+    badge: "border-indigo-400/40 bg-indigo-500/10 text-indigo-300",
+  },
+};
 
 function formatFriendlyDate(iso: string): string {
   const today = new Date().toISOString().slice(0, 10);
@@ -71,17 +108,36 @@ async function OverviewHero({ user }: { user: User | null }) {
   const swims = swimTimesThisWeek(swimTimes);
   const runsThisWk = runsThisWeek(runs);
 
+  // Cross-modality, recent-window signal (see lib/dashboard/derive.ts)
+  // rather than all-time history, so the title reflects how training
+  // has actually been going lately, not a burst of activity months ago.
+  const activeDays = activeDaysRecently(gymSets, runs, swimTimes);
+  const { title, subtitle, tier } = trainingTitle(activeDays);
+  const theme = TIER_THEME[tier];
+
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-linear-to-br from-slate-800 via-indigo-900/50 to-slate-800 p-6">
-      <div className="pointer-events-none absolute -top-16 -left-12 h-56 w-56 rounded-full bg-indigo-600/30 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 -right-10 h-56 w-56 rounded-full bg-fuchsia-600/20 blur-3xl" />
+    <div
+      className={`relative overflow-hidden rounded-2xl border border-slate-700 bg-linear-to-br p-6 transition-colors duration-700 ${theme.gradient}`}
+    >
+      <div
+        className={`pointer-events-none absolute -top-16 -left-12 h-56 w-56 rounded-full blur-3xl transition-colors duration-700 ${theme.blob1}`}
+      />
+      <div
+        className={`pointer-events-none absolute -bottom-20 -right-10 h-56 w-56 rounded-full blur-3xl transition-colors duration-700 ${theme.blob2}`}
+      />
 
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <div>
+          <p
+            className={`mb-2 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${theme.badge}`}
+          >
+            {title}
+          </p>
           <h1 className="text-2xl font-bold">Welcome back</h1>
           {user?.email && (
             <Greeting name={getDisplayName(user)} email={user.email} />
           )}
+          <p className="mt-1 text-sm text-zinc-400">{subtitle}</p>
         </div>
 
         {(tracksGym || tracksSwimming || tracksRunning) && (

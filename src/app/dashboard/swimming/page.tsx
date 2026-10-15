@@ -7,6 +7,7 @@ import { SWIM_STROKES } from "@/lib/constants/swimming";
 import { LogTimeForm } from "@/components/swimming/log-time-form";
 import { SwimEventCard } from "@/components/swimming/swim-event-card";
 import { DeleteLastSwimTimeButton } from "@/components/swimming/delete-last-swim-time-button";
+import { SectionTabs } from "@/components/ui/section-tabs";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
 export default async function SwimmingPage() {
@@ -61,45 +62,10 @@ async function SwimEvents({ userId }: { userId: string }) {
   const mostRecent = recent[0];
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-semibold text-zinc-100">Recent Times</h2>
-          {mostRecent && (
-            <DeleteLastSwimTimeButton
-              swimTimeId={mostRecent.id}
-              message={`This removes your most recent time: ${mostRecent.distance_m}m ${mostRecent.stroke} in ${formatSwimTime(Number(mostRecent.time_seconds))} on ${mostRecent.session_date}. This can't be undone.`}
-            />
-          )}
-        </div>
-        <ul className="space-y-2">
-          {recent.map((t) => {
-            const strokeEntry = SWIM_STROKES.find((s) => s.value === t.stroke);
-            return (
-              <li
-                key={t.id}
-                className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2 text-sm last:border-0 last:pb-0"
-              >
-                <div>
-                  <p className="font-medium text-zinc-100">
-                    <span aria-hidden>{strokeEntry?.icon}</span> {t.distance_m}m{" "}
-                    {strokeEntry?.label ?? t.stroke}
-                  </p>
-                  <p className="text-xs text-zinc-500">{t.session_date}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-cyan-300">{formatSwimTime(Number(t.time_seconds))}</p>
-                  <p className="text-xs text-zinc-500">
-                    {formatSwimTime(swimPacePer100m(Number(t.time_seconds), t.distance_m))}/100m
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      {events.map((event) => (
+    <SectionTabs
+      accent="indigo"
+      recentLabel="Recent Swim Logs"
+      progress={events.map((event) => (
         <SwimEventCard
           key={`${event.stroke}:${event.distanceM}`}
           event={event}
@@ -111,6 +77,44 @@ async function SwimEvents({ userId }: { userId: string }) {
           }
         />
       ))}
-    </div>
+      recent={
+        <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold text-zinc-100">Recent Swim Logs</h2>
+            {mostRecent && (
+              <DeleteLastSwimTimeButton
+                swimTimeId={mostRecent.id}
+                message={`This removes your most recent time: ${mostRecent.distance_m}m ${mostRecent.stroke} in ${formatSwimTime(Number(mostRecent.time_seconds))} on ${mostRecent.session_date}. This can't be undone.`}
+              />
+            )}
+          </div>
+          <ul className="space-y-2">
+            {recent.map((t) => {
+              const strokeEntry = SWIM_STROKES.find((s) => s.value === t.stroke);
+              return (
+                <li
+                  key={t.id}
+                  className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2 text-sm last:border-0 last:pb-0"
+                >
+                  <div>
+                    <p className="font-medium text-zinc-100">
+                      <span aria-hidden>{strokeEntry?.icon}</span> {t.distance_m}m{" "}
+                      {strokeEntry?.label ?? t.stroke}
+                    </p>
+                    <p className="text-xs text-zinc-500">{t.session_date}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-cyan-300">{formatSwimTime(Number(t.time_seconds))}</p>
+                    <p className="text-xs text-zinc-500">
+                      {formatSwimTime(swimPacePer100m(Number(t.time_seconds), t.distance_m))}/100m
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      }
+    />
   );
 }

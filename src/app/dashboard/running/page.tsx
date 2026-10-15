@@ -8,6 +8,7 @@ import { STANDARD_DISTANCES } from "@/lib/constants/running";
 import { LogRunForm } from "@/components/running/log-run-form";
 import { DistanceProgressCard } from "@/components/running/distance-progress-card";
 import { DeleteLastRunButton } from "@/components/running/delete-last-run-button";
+import { SectionTabs } from "@/components/ui/section-tabs";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
 export default async function RunningPage() {
@@ -61,39 +62,42 @@ async function RunningStats({ userId }: { userId: string }) {
   const recent = [...runs].reverse().slice(0, 10);
 
   return (
-    <div className="space-y-3">
-      {distances.map(({ distance, runs: distanceRuns }) => (
+    <SectionTabs
+      accent="emerald"
+      recentLabel="Recent Runs"
+      progress={distances.map(({ distance, runs: distanceRuns }) => (
         <DistanceProgressCard key={distance.value} distance={distance} runs={distanceRuns} />
       ))}
-
-      <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-semibold text-zinc-100">Recent Runs</h2>
-          {recent[0] && (
-            <DeleteLastRunButton
-              runId={recent[0].id}
-              message={`This removes your most recent run: ${Number(recent[0].distance_km)}km in ${formatDuration(recent[0].duration_seconds)} on ${recent[0].session_date}. This can't be undone.`}
-            />
-          )}
+      recent={
+        <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold text-zinc-100">Recent Runs</h2>
+            {recent[0] && (
+              <DeleteLastRunButton
+                runId={recent[0].id}
+                message={`This removes your most recent run: ${Number(recent[0].distance_km)}km in ${formatDuration(recent[0].duration_seconds)} on ${recent[0].session_date}. This can't be undone.`}
+              />
+            )}
+          </div>
+          <ul className="space-y-2">
+            {recent.map((run) => (
+              <li
+                key={run.id}
+                className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2 text-sm last:border-0 last:pb-0"
+              >
+                <div>
+                  <p className="font-medium text-zinc-100">{Number(run.distance_km)}km</p>
+                  <p className="text-xs text-zinc-500">{run.session_date}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-emerald-300">{formatDuration(run.duration_seconds)}</p>
+                  <p className="text-xs text-zinc-500">{formatPace(pace(run))}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
-        <ul className="space-y-2">
-          {recent.map((run) => (
-            <li
-              key={run.id}
-              className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2 text-sm last:border-0 last:pb-0"
-            >
-              <div>
-                <p className="font-medium text-zinc-100">{Number(run.distance_km)}km</p>
-                <p className="text-xs text-zinc-500">{run.session_date}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-emerald-300">{formatDuration(run.duration_seconds)}</p>
-                <p className="text-xs text-zinc-500">{formatPace(pace(run))}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+      }
+    />
   );
 }
