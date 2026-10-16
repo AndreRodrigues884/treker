@@ -30,43 +30,45 @@ export function BodyMetricsCard({
         </p>
       </div>
 
-      <form action={formAction} className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
-          <label htmlFor="bodyweightKg" className="text-xs text-zinc-500">
-            Bodyweight (kg)
-          </label>
-          <input
-            id="bodyweightKg"
-            name="bodyweightKg"
-            type="number"
-            min={20}
-            max={400}
-            step={0.1}
-            defaultValue={bodyweightKg ?? undefined}
-            placeholder="—"
-            className="w-28 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
-          />
-        </div>
-        <div className="space-y-1">
-          <label htmlFor="heightCm" className="text-xs text-zinc-500">
-            Height (cm)
-          </label>
-          <input
-            id="heightCm"
-            name="heightCm"
-            type="number"
-            min={50}
-            max={272}
-            step={0.5}
-            defaultValue={heightCm ?? undefined}
-            placeholder="—"
-            className="w-28 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
-          />
+      <form action={formAction} className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label htmlFor="bodyweightKg" className="text-xs text-zinc-500">
+              Bodyweight (kg)
+            </label>
+            <input
+              id="bodyweightKg"
+              name="bodyweightKg"
+              type="number"
+              min={20}
+              max={400}
+              step={0.1}
+              defaultValue={bodyweightKg ?? undefined}
+              placeholder="—"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="heightCm" className="text-xs text-zinc-500">
+              Height (cm)
+            </label>
+            <input
+              id="heightCm"
+              name="heightCm"
+              type="number"
+              min={50}
+              max={272}
+              step={0.5}
+              defaultValue={heightCm ?? undefined}
+              placeholder="—"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-400"
+            />
+          </div>
         </div>
         <button
           type="submit"
           disabled={pending}
-          className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-40"
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-40"
         >
           {pending && <SpinnerIcon className="h-3.5 w-3.5" />}
           Save
