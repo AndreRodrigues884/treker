@@ -130,14 +130,16 @@ export default async function StatisticsPage() {
 }
 
 async function TotalStrengthSection({ userId }: { userId: string }) {
-  const [exercises, sets] = await Promise.all([
+  const [exercises, sets, profile] = await Promise.all([
     getAllExercises(userId),
     getAllExerciseSets(userId),
+    getProfile(userId),
   ]);
+  const bodyweightKg = profile?.bodyweight_kg ?? null;
 
-  const oneRepMaxes = bestOneRepMaxPerExercise(exercises, sets);
+  const oneRepMaxes = bestOneRepMaxPerExercise(exercises, sets, bodyweightKg);
   const strength = totalStrength(oneRepMaxes);
-  const strengthHistory = totalStrengthHistory(exercises, sets);
+  const strengthHistory = totalStrengthHistory(exercises, sets, bodyweightKg);
   const strengthGain =
     strengthHistory.length > 1 ? strength - strengthHistory[0].value : 0;
 
@@ -171,19 +173,25 @@ async function TotalStrengthSection({ userId }: { userId: string }) {
 }
 
 async function OneRepMaxSection({ userId }: { userId: string }) {
-  const [exercises, sets] = await Promise.all([
+  const [exercises, sets, profile] = await Promise.all([
     getAllExercises(userId),
     getAllExerciseSets(userId),
+    getProfile(userId),
   ]);
+  const bodyweightKg = profile?.bodyweight_kg ?? null;
 
-  const oneRepMaxes = bestOneRepMaxPerExercise(exercises, sets);
+  const oneRepMaxes = bestOneRepMaxPerExercise(exercises, sets, bodyweightKg);
   const track1rmById = new Map(exercises.map((e) => [e.id, e.track_1rm]));
+  const addsBodyweightById = new Map(exercises.map((e) => [e.id, e.adds_bodyweight]));
   const oneRepMaxExercises = oneRepMaxes
     .filter((e) => track1rmById.get(e.exerciseId) !== false)
     .map((e) => ({
       exerciseId: e.exerciseId,
       exerciseName: e.exerciseName,
-      history: oneRepMaxHistory(sets.filter((s) => s.exercise_id === e.exerciseId)),
+      history: oneRepMaxHistory(
+        sets.filter((s) => s.exercise_id === e.exerciseId),
+        addsBodyweightById.get(e.exerciseId) ? bodyweightKg : null,
+      ),
     }));
 
   return <OneRepMaxCard exercises={oneRepMaxExercises} />;

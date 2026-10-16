@@ -12,6 +12,7 @@ import { MODALITIES } from "@/lib/constants/onboarding";
 import { Greeting } from "@/components/dashboard/greeting";
 import { ModalityCard } from "@/components/dashboard/modality-card";
 import { WeeklyRing, type WeeklyRingSegment } from "@/components/dashboard/weekly-ring";
+import { BodyMetricsCard } from "@/components/dashboard/body-metrics-card";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
 // One visual theme per training tier — the "gamified" part of the
@@ -75,7 +76,22 @@ export default async function DashboardPage() {
       <Suspense fallback={<SectionSpinner label="Loading your modalities…" />}>
         <ModalityGrid userId={user?.id} />
       </Suspense>
+
+      {/* Gym-only — its one purpose is a correct 1RM on weighted
+       * bodyweight exercises, meaningless for someone who only swims
+       * or runs. */}
+      <Suspense fallback={<SectionSpinner label="Loading your body metrics…" className="h-28" />}>
+        <BodyMetricsSection userId={user?.id} />
+      </Suspense>
     </div>
+  );
+}
+
+async function BodyMetricsSection({ userId }: { userId: string | undefined }) {
+  const profile = userId ? await getProfile(userId) : null;
+  if (!profile?.modalities.includes("gym")) return null;
+  return (
+    <BodyMetricsCard bodyweightKg={profile.bodyweight_kg} heightCm={profile.height_cm} />
   );
 }
 

@@ -34,6 +34,7 @@ export function ExerciseForm({
     unit: ExerciseUnit;
     tracksLoad: boolean;
     track1rm: boolean;
+    addsBodyweight: boolean;
   };
   submitLabel?: string;
   onCancel?: () => void;
@@ -175,15 +176,32 @@ export function ExerciseForm({
       </label>
 
       {tracksLoad && unit === "reps" && (
-        <label className="flex items-center gap-2 text-sm text-zinc-300">
-          <input
-            type="checkbox"
-            name="track1rm"
-            defaultChecked={defaultValues?.track1rm ?? true}
-            className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-indigo-500"
-          />
-          Show this exercise in the 1RM Estimado chart
-        </label>
+        <>
+          <label className="flex items-center gap-2 text-sm text-zinc-300">
+            <input
+              type="checkbox"
+              name="track1rm"
+              defaultChecked={defaultValues?.track1rm ?? true}
+              className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-indigo-500"
+            />
+            Show this exercise in the 1RM Estimado chart
+          </label>
+          <label className="flex items-start gap-2 text-sm text-zinc-300">
+            <input
+              type="checkbox"
+              name="addsBodyweight"
+              defaultChecked={defaultValues?.addsBodyweight ?? false}
+              className="mt-0.5 h-4 w-4 rounded border-slate-600 bg-slate-800 accent-indigo-500"
+            />
+            <span>
+              Weighted bodyweight exercise
+              <span className="block text-xs text-zinc-500">
+                e.g. weighted pull-ups/dips — the logged weight is on top of
+                your bodyweight, not the whole load
+              </span>
+            </span>
+          </label>
+        </>
       )}
 
       {state?.status === "error" && (

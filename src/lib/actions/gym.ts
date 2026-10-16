@@ -7,6 +7,7 @@ import type { PendingSet } from "@/components/gym/session-context";
 import { NEW_ROUTINE, VOLUME_MILESTONES_KG, type MuscleGroup } from "@/lib/constants/gym";
 import type { TablesInsert } from "@/types/database.types";
 import { getAllExercises, getAllExerciseSets } from "@/lib/gym/queries";
+import { getProfile } from "@/lib/supabase/queries";
 import { estimatedOneRepMax, totalVolumeEver } from "@/lib/gym/derive";
 
 export type PrAchieved = {
@@ -72,6 +73,7 @@ export async function createExerciseAction(
     reps: formData.get("reps"),
     tracksLoad: formData.get("tracksLoad") === "on",
     track1rm: formData.get("track1rm") === "on",
+    addsBodyweight: formData.get("addsBodyweight") === "on",
   });
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0].message };
@@ -102,6 +104,7 @@ export async function createExerciseAction(
     unit: parsed.data.unit,
     tracks_load: parsed.data.tracksLoad,
     track_1rm: parsed.data.track1rm,
+    adds_bodyweight: parsed.data.addsBodyweight,
   });
   if (error) return { status: "error", message: error.message };
 
@@ -124,6 +127,7 @@ export async function updateExerciseAction(
     reps: formData.get("reps"),
     tracksLoad: formData.get("tracksLoad") === "on",
     track1rm: formData.get("track1rm") === "on",
+    addsBodyweight: formData.get("addsBodyweight") === "on",
   });
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0].message };
@@ -156,6 +160,7 @@ export async function updateExerciseAction(
       unit: parsed.data.unit,
       tracks_load: parsed.data.tracksLoad,
       track_1rm: parsed.data.track1rm,
+      adds_bodyweight: parsed.data.addsBodyweight,
     })
     .eq("id", exerciseId)
     .eq("user_id", user.id);
@@ -292,11 +297,13 @@ export async function saveSessionAction(
   // to validate what's being saved (same as before); and the user's
   // *entire* history, since PRs and lifetime-volume milestones are
   // account-wide, not scoped to one muscle group.
-  const [{ data: groupExercises }, allExercises, allSets] = await Promise.all([
+  const [{ data: groupExercises }, allExercises, allSets, profile] = await Promise.all([
     supabase.from("exercises").select("id").eq("user_id", user.id).eq("muscle_group", muscleGroup),
     getAllExercises(user.id),
     getAllExerciseSets(user.id),
+    getProfile(user.id),
   ]);
+  const bodyweightKg = profile?.bodyweight_kg ?? null;
 
   // Guard against stale client-side state — a set staged for an exercise
   // that's since been deleted (or restored from an older backgrounded-tab
@@ -357,7 +364,10 @@ export async function saveSessionAction(
   const priorBestByExercise = new Map<string, number>();
   for (const s of allSets) {
     if (!isPrEligible(s.exercise_id) || s.weight_kg == null) continue;
-    const oneRm = estimatedOneRepMax(s.weight_kg, s.reps);
+    const effectiveBodyweight = exerciseById.get(s.exercise_id)?.adds_bodyweight
+      ? bodyweightKg
+      : null;
+    const oneRm = estimatedOneRepMax(s.weight_kg, s.reps, effectiveBodyweight);
     if (oneRm > (priorBestByExercise.get(s.exercise_id) ?? 0)) {
       priorBestByExercise.set(s.exercise_id, oneRm);
     }
@@ -369,7 +379,10 @@ export async function saveSessionAction(
   >();
   for (const row of rows) {
     if (!isPrEligible(row.exercise_id) || row.weight_kg == null) continue;
-    const oneRm = estimatedOneRepMax(row.weight_kg, row.reps);
+    const effectiveBodyweight = exerciseById.get(row.exercise_id)?.adds_bodyweight
+      ? bodyweightKg
+      : null;
+    const oneRm = estimatedOneRepMax(row.weight_kg, row.reps, effectiveBodyweight);
     const current = bestNewByExercise.get(row.exercise_id);
     if (!current || oneRm > current.oneRepMax) {
       bestNewByExercise.set(row.exercise_id, {

@@ -56,6 +56,7 @@ function makeExercise(overrides: Partial<Exercise>): Exercise {
     reps: 10,
     unit: "reps",
     tracks_load: true,
+    adds_bodyweight: false,
     created_at: "",
     updated_at: "",
     ...overrides,
@@ -163,6 +164,27 @@ describe("estimatedOneRepMax", () => {
   it("is zero for zero reps", () => {
     expect(estimatedOneRepMax(100, 0)).toBe(0);
   });
+
+  it("is unaffected by bodyweight when omitted — the exact bug report", () => {
+    // 10kg x 5 on a weighted pull-up, Epley'd on the added weight alone,
+    // looked far too low (11.7kg) for what the lifter could clearly do.
+    expect(estimatedOneRepMax(10, 5)).toBeCloseTo(11.67, 2);
+  });
+
+  it("folds bodyweight into the load, then nets it back out", () => {
+    // Same 10kg x 5 weighted pull-up, but the real resistance is
+    // bodyweight (70kg) + 10kg = 80kg. Epley on 80kg gives ~93.3kg;
+    // subtracting the 70kg bodyweight back out gives the added-weight
+    // 1RM a lifter would actually load onto a dip belt.
+    const result = estimatedOneRepMax(10, 5, 70);
+    expect(result).toBeCloseTo(80 * (1 + 5 / 30) - 70, 2);
+    expect(result).toBeCloseTo(23.33, 2);
+  });
+
+  it("treats null/0 bodyweight the same as omitting it", () => {
+    expect(estimatedOneRepMax(100, 5, null)).toBeCloseTo(estimatedOneRepMax(100, 5));
+    expect(estimatedOneRepMax(100, 5, 0)).toBeCloseTo(estimatedOneRepMax(100, 5));
+  });
 });
 
 describe("bestOneRepMaxPerExercise / totalStrength", () => {
@@ -190,6 +212,21 @@ describe("bestOneRepMaxPerExercise / totalStrength", () => {
     });
     const sets = [makeSet({ exercise_id: "plank", weight_kg: 20, reps: 60 })];
     expect(bestOneRepMaxPerExercise([plank], sets)).toEqual([]);
+  });
+
+  it("folds in bodyweight only for exercises marked adds_bodyweight", () => {
+    const pullups = makeExercise({ id: "pullups", name: "Weighted Pull Ups", adds_bodyweight: true });
+    const bench = makeExercise({ id: "bench", name: "Bench", adds_bodyweight: false });
+    const sets = [
+      makeSet({ exercise_id: "pullups", weight_kg: 10, reps: 5 }),
+      makeSet({ exercise_id: "bench", weight_kg: 10, reps: 5 }),
+    ];
+    const perExercise = bestOneRepMaxPerExercise([pullups, bench], sets, 70);
+    const pullupsResult = perExercise.find((e) => e.exerciseId === "pullups")!;
+    const benchResult = perExercise.find((e) => e.exerciseId === "bench")!;
+    expect(pullupsResult.oneRepMax).toBeCloseTo(estimatedOneRepMax(10, 5, 70));
+    expect(benchResult.oneRepMax).toBeCloseTo(estimatedOneRepMax(10, 5));
+    expect(pullupsResult.oneRepMax).toBeGreaterThan(benchResult.oneRepMax);
   });
 });
 
@@ -566,6 +603,13 @@ describe("oneRepMaxHistory", () => {
     const sets = [makeSet({ session_date: "2026-01-01", weight_kg: null, reps: 5 })];
     expect(oneRepMaxHistory(sets)).toEqual([]);
   });
+
+  it("folds in bodyweight when the caller passes it (adds_bodyweight exercises)", () => {
+    const sets = [makeSet({ session_date: "2026-01-01", weight_kg: 10, reps: 5 })];
+    expect(oneRepMaxHistory(sets, 70)).toEqual([
+      { date: "2026-01-01", value: estimatedOneRepMax(10, 5, 70) },
+    ]);
+  });
 });
 
 describe("totalStrengthHistory", () => {
@@ -596,6 +640,19 @@ describe("totalStrengthHistory", () => {
     const bodyweight = makeExercise({ id: "bw", tracks_load: false });
     const sets = [makeSet({ exercise_id: "bw", session_date: "2026-01-01", reps: 12 })];
     expect(totalStrengthHistory([bodyweight], sets)).toEqual([]);
+  });
+
+  it("only folds bodyweight into exercises marked adds_bodyweight", () => {
+    const pullups = makeExercise({ id: "pullups", adds_bodyweight: true });
+    const bench = makeExercise({ id: "bench", adds_bodyweight: false });
+    const sets = [
+      makeSet({ exercise_id: "pullups", session_date: "2026-01-01", weight_kg: 10, reps: 5 }),
+      makeSet({ exercise_id: "bench", session_date: "2026-01-01", weight_kg: 10, reps: 5 }),
+    ];
+    const history = totalStrengthHistory([pullups, bench], sets, 70);
+    expect(history[0].value).toBeCloseTo(
+      estimatedOneRepMax(10, 5, 70) + estimatedOneRepMax(10, 5),
+    );
   });
 });
 

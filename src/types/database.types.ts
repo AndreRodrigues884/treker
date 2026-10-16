@@ -183,6 +183,7 @@ export type Database = {
       }
       exercises: {
         Row: {
+          adds_bodyweight: boolean
           created_at: string
           id: string
           muscle_group: Database["public"]["Enums"]["muscle_group"]
@@ -198,6 +199,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          adds_bodyweight?: boolean
           created_at?: string
           id?: string
           muscle_group: Database["public"]["Enums"]["muscle_group"]
@@ -213,6 +215,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          adds_bodyweight?: boolean
           created_at?: string
           id?: string
           muscle_group?: Database["public"]["Enums"]["muscle_group"]
@@ -239,24 +242,30 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bodyweight_kg: number | null
           created_at: string
           goals: Database["public"]["Enums"]["training_goal"][]
+          height_cm: number | null
           id: string
           modalities: Database["public"]["Enums"]["modality"][]
           onboarding_completed: boolean
           updated_at: string
         }
         Insert: {
+          bodyweight_kg?: number | null
           created_at?: string
           goals?: Database["public"]["Enums"]["training_goal"][]
+          height_cm?: number | null
           id: string
           modalities?: Database["public"]["Enums"]["modality"][]
           onboarding_completed?: boolean
           updated_at?: string
         }
         Update: {
+          bodyweight_kg?: number | null
           created_at?: string
           goals?: Database["public"]["Enums"]["training_goal"][]
+          height_cm?: number | null
           id?: string
           modalities?: Database["public"]["Enums"]["modality"][]
           onboarding_completed?: boolean

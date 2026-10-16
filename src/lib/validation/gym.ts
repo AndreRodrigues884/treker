@@ -41,6 +41,7 @@ export const exerciseSchema = z
     reps: z.coerce.number().int().min(1, "Enter a target").max(600),
     tracksLoad: z.coerce.boolean(),
     track1rm: z.coerce.boolean(),
+    addsBodyweight: z.coerce.boolean(),
   })
   .refine((data) => data.unit !== "reps" || data.reps <= 100, {
     message: "At most 100 reps",

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { profileSchema, passwordChangeSchema } from "@/lib/validation/profile";
+import { profileSchema, passwordChangeSchema, bodyMetricsSchema } from "@/lib/validation/profile";
 
 export type ProfileResult =
   | { status: "error"; message: string }
@@ -44,6 +44,38 @@ export async function updateNotificationsAction(enabled: boolean) {
   if (error) {
     throw new Error(error.message);
   }
+}
+
+/** Bodyweight/height, kept on the profiles row as a single current
+ * value — not a history, that feature was removed. Exists purely so
+ * exercises marked "adds bodyweight" (e.g. weighted pull-ups) can
+ * compute a real 1RM; it's used nowhere else. */
+export async function updateBodyMetricsAction(
+  _prevState: ProfileResult,
+  formData: FormData,
+): Promise<ProfileResult> {
+  const parsed = bodyMetricsSchema.safeParse({
+    bodyweightKg: formData.get("bodyweightKg"),
+    heightCm: formData.get("heightCm"),
+  });
+  if (!parsed.success) {
+    return { status: "error", message: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Not authenticated." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ bodyweight_kg: parsed.data.bodyweightKg, height_cm: parsed.data.heightCm })
+    .eq("id", user.id);
+  if (error) return { status: "error", message: error.message };
+
+  revalidatePath("/dashboard", "layout");
+  return { status: "success" };
 }
 
 export type PasswordChangeResult =

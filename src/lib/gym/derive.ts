@@ -90,10 +90,24 @@ export function routineProgressHistory(
 // --- Statistics (across every exercise, not one muscle group) ---
 
 /** Epley formula: a rough estimate of the max you could lift once, from
- * any weight × reps you actually did. */
-export function estimatedOneRepMax(weightKg: number, reps: number): number {
+ * any weight × reps you actually did. `bodyweightKg` is for exercises
+ * where the logged weight isn't the whole resistance — a weighted
+ * pull-up at "10kg" is really bodyweight+10kg being moved, so Epley
+ * needs to see that combined figure or it drastically underestimates
+ * the real 1RM. Bodyweight comes back out of the result afterwards:
+ * what's actionable is how much extra plate weight to load for a
+ * 1-rep attempt, not a number that silently double-counts bodyweight
+ * everywhere it's summed (e.g. in totalStrength across exercises).
+ * Omitted (or 0), this reduces to the plain formula, so every other
+ * exercise is unaffected. */
+export function estimatedOneRepMax(
+  weightKg: number,
+  reps: number,
+  bodyweightKg?: number | null,
+): number {
   if (reps <= 0) return 0;
-  return weightKg * (1 + reps / 30);
+  const bodyweight = bodyweightKg ?? 0;
+  return (weightKg + bodyweight) * (1 + reps / 30) - bodyweight;
 }
 
 export type ExerciseOneRepMax = {
@@ -109,14 +123,17 @@ export type ExerciseOneRepMax = {
 export function bestOneRepMaxPerExercise(
   exercises: Exercise[],
   sets: ExerciseSet[],
+  bodyweightKg?: number | null,
 ): ExerciseOneRepMax[] {
   return exercises
     .filter((e) => e.tracks_load && e.unit === "reps")
     .map((exercise) => {
+      const effectiveBodyweight = exercise.adds_bodyweight ? bodyweightKg : null;
       const best = sets
         .filter((s) => s.exercise_id === exercise.id && s.weight_kg != null)
         .reduce(
-          (max, s) => Math.max(max, estimatedOneRepMax(s.weight_kg!, s.reps)),
+          (max, s) =>
+            Math.max(max, estimatedOneRepMax(s.weight_kg!, s.reps, effectiveBodyweight)),
           0,
         );
       return { exerciseId: exercise.id, exerciseName: exercise.name, oneRepMax: best };
@@ -167,12 +184,18 @@ export function latestPrPerExercise(prs: ExercisePr[]): ExercisePr[] {
 
 /** Each session date's best estimated 1RM for one exercise — not a
  * running max, so a lighter/deload session shows as a real dip, not
- * hidden behind a plateaued high-water mark. */
-export function oneRepMaxHistory(sets: ExerciseSet[]): ProgressPoint[] {
+ * hidden behind a plateaued high-water mark. `bodyweightKg` should
+ * only be passed for an exercise with adds_bodyweight set — the
+ * caller already filters `sets` down to one exercise, so it also knows
+ * whether this one needs it (see estimatedOneRepMax). */
+export function oneRepMaxHistory(
+  sets: ExerciseSet[],
+  bodyweightKg?: number | null,
+): ProgressPoint[] {
   const byDate = new Map<string, number>();
   for (const s of sets) {
     if (s.weight_kg == null) continue;
-    const oneRm = estimatedOneRepMax(s.weight_kg, s.reps);
+    const oneRm = estimatedOneRepMax(s.weight_kg, s.reps, bodyweightKg);
     byDate.set(s.session_date, Math.max(byDate.get(s.session_date) ?? 0, oneRm));
   }
   return [...byDate.entries()]
@@ -187,9 +210,13 @@ export function oneRepMaxHistory(sets: ExerciseSet[]): ProgressPoint[] {
 export function totalStrengthHistory(
   exercises: Exercise[],
   sets: ExerciseSet[],
+  bodyweightKg?: number | null,
 ): ProgressPoint[] {
   const loadExerciseIds = new Set(
     exercises.filter((e) => e.tracks_load && e.unit === "reps").map((e) => e.id),
+  );
+  const addsBodyweightIds = new Set(
+    exercises.filter((e) => e.adds_bodyweight).map((e) => e.id),
   );
   const relevant = sets.filter(
     (s) => loadExerciseIds.has(s.exercise_id) && s.weight_kg != null,
@@ -200,7 +227,8 @@ export function totalStrengthHistory(
   return dates.map((date) => {
     for (const s of relevant) {
       if (s.session_date !== date) continue;
-      const oneRm = estimatedOneRepMax(s.weight_kg!, s.reps);
+      const effectiveBodyweight = addsBodyweightIds.has(s.exercise_id) ? bodyweightKg : null;
+      const oneRm = estimatedOneRepMax(s.weight_kg!, s.reps, effectiveBodyweight);
       const prevBest = bestByExercise.get(s.exercise_id) ?? 0;
       if (oneRm > prevBest) bestByExercise.set(s.exercise_id, oneRm);
     }

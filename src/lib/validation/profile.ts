@@ -9,6 +9,21 @@ export const profileSchema = z.object({
 });
 export type ProfileInput = z.infer<typeof profileSchema>;
 
+/** Both fields optional/clearable (an empty field means "don't know
+ * yet", not 0) — an empty string from the form is normalized to null
+ * before the numeric check runs. */
+const optionalMetric = (min: number, max: number) =>
+  z.preprocess(
+    (v) => (v === "" || v == null ? null : v),
+    z.coerce.number().min(min).max(max).nullable(),
+  );
+
+export const bodyMetricsSchema = z.object({
+  bodyweightKg: optionalMetric(20, 400),
+  heightCm: optionalMetric(50, 272),
+});
+export type BodyMetricsInput = z.infer<typeof bodyMetricsSchema>;
+
 export const passwordChangeSchema = z
   .object({
     currentPassword: z.string().min(1, "Enter your current password"),

@@ -165,6 +165,7 @@ export function ExerciseCard({
           unit: exercise.unit,
           tracksLoad: exercise.tracks_load,
           track1rm: exercise.track_1rm,
+          addsBodyweight: exercise.adds_bodyweight,
         }}
         submitLabel="Save changes"
         onCancel={() => setEditing(false)}
