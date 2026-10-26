@@ -1,24 +1,35 @@
 "use client";
 
-import { formatDuration, formatPace, mostRecentRun, pace, paceHistory } from "@/lib/running/derive";
+import {
+  formatDuration,
+  formatPace,
+  mostRecentRun,
+  pace,
+  paceHistory,
+  runningTimeHistory,
+} from "@/lib/running/derive";
 import type { StandardDistance } from "@/lib/constants/running";
 import { ProgressChart } from "@/components/gym/progress-chart";
-import type { Run } from "@/types/running";
+import { RunningGoalCard } from "@/components/running/running-goal-card";
+import type { Run, RunningGoal } from "@/types/running";
 
 const EMERALD = "#34d399";
 
 /** One card per standard distance — mirrors SwimEventCard's per-event
- * layout (header with the latest run's time + pace, chart underneath)
- * rather than a picker across distances, so every distance you've
- * actually run shows its own trend at a glance. The header reads from
- * one real run (the most recent) — time first, since that's the
- * concrete thing you did, pace underneath as the derived number. */
+ * layout (header with the latest run's time + pace, chart underneath,
+ * goal card at the bottom) rather than a picker across distances, so
+ * every distance you've actually run shows its own trend at a glance.
+ * The header reads from one real run (the most recent) — time first,
+ * since that's the concrete thing you did, pace underneath as the
+ * derived number. */
 export function DistanceProgressCard({
   distance,
   runs,
+  goal,
 }: {
   distance: StandardDistance;
   runs: Run[];
+  goal: RunningGoal | null;
 }) {
   const history = paceHistory(runs);
   const latest = mostRecentRun(runs);
@@ -43,6 +54,8 @@ export function DistanceProgressCard({
       </div>
 
       <ProgressChart points={history} color={EMERALD} formatValue={formatPace} />
+
+      <RunningGoalCard distance={distance} history={runningTimeHistory(runs, distance)} goal={goal} />
     </div>
   );
 }

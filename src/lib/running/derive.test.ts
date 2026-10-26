@@ -8,6 +8,8 @@ import {
   pace,
   paceHistory,
   personalBests,
+  runningGoalProgress,
+  runningTimeHistory,
   runsForDistance,
   runsThisWeek,
   totalDistanceThisWeek,
@@ -190,6 +192,68 @@ describe("latestPrPerDistance", () => {
 
   it("is empty with no PRs", () => {
     expect(latestPrPerDistance([])).toEqual([]);
+  });
+});
+
+describe("runningTimeHistory", () => {
+  it("normalizes each run's duration to the exact standard distance via pace", () => {
+    const fiveK = { value: "5k", label: "5K", km: 5 } as const;
+    const runs = [
+      // Exactly 5km in 25:00 -> 1500s at the standard distance.
+      makeRun({ id: "a", session_date: "2026-01-01", distance_km: 5, duration_seconds: 1500 }),
+      // 5.02km (within tolerance) at the same 5:00/km pace -> still
+      // normalizes to 1500s for the *standard* 5k, not its raw 1506s.
+      makeRun({ id: "b", session_date: "2026-01-08", distance_km: 5.02, duration_seconds: 1506 }),
+    ];
+    const history = runningTimeHistory(runs, fiveK);
+    expect(history).toEqual([
+      { date: "2026-01-01", value: 1500 },
+      { date: "2026-01-08", value: 1500 },
+    ]);
+  });
+
+  it("is empty with no runs at that distance", () => {
+    const fiveK = { value: "5k", label: "5K", km: 5 } as const;
+    expect(runningTimeHistory([makeRun({ distance_km: 10 })], fiveK)).toEqual([]);
+  });
+});
+
+describe("runningGoalProgress", () => {
+  it("is null with no history", () => {
+    expect(runningGoalProgress([], 6000)).toBeNull();
+  });
+
+  it("computes progress, pace, and an ETA when improving towards the goal", () => {
+    const history = [
+      { date: "2026-01-01", value: 6600 },
+      { date: "2026-01-08", value: 6500 },
+    ];
+    const result = runningGoalProgress(history, 6000);
+    expect(result?.progressPct).toBeCloseTo((100 / 600) * 100);
+    expect(result?.paceSecondsPerWeek).toBeCloseTo(-100);
+    expect(result?.improving).toBe(true);
+    expect(result?.etaDate).not.toBeNull();
+  });
+
+  it("caps progress at 100 and has no ETA once the goal is already met", () => {
+    const history = [
+      { date: "2026-01-01", value: 6200 },
+      { date: "2026-01-08", value: 5900 },
+    ];
+    const result = runningGoalProgress(history, 6000);
+    expect(result?.progressPct).toBe(100);
+    expect(result?.etaDate).toBeNull();
+  });
+
+  it("flags a worsening trend as not improving, with no ETA and progress floored at 0", () => {
+    const history = [
+      { date: "2026-01-01", value: 6000 },
+      { date: "2026-01-08", value: 6100 },
+    ];
+    const result = runningGoalProgress(history, 5500);
+    expect(result?.progressPct).toBe(0);
+    expect(result?.improving).toBe(false);
+    expect(result?.etaDate).toBeNull();
   });
 });
 

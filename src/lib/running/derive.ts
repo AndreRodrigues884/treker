@@ -2,6 +2,8 @@ import type { Run, RunningPr } from "@/types/running";
 import { STANDARD_DISTANCES, type StandardDistance } from "@/lib/constants/running";
 import { isoWeekStart, todayISO, type ProgressPoint } from "@/lib/gym/derive";
 
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+
 /** "1:05:23" for anything an hour or over, otherwise "23:45" — how a
  * run's total duration is actually read. */
 export function formatDuration(totalSeconds: number): string {
@@ -155,4 +157,110 @@ export function latestPrPerDistance(prs: RunningPr[]): RunningPr[] {
     result.push(pr);
   }
   return result;
+}
+
+/** One point per logged run at this standard distance, oldest to
+ * newest — not pace, but the *equivalent total time at the exact
+ * standard distance* (pace × distance.km). A run within the 2%
+ * tolerance of "half marathon" might be 21.2km, not exactly 21.1km;
+ * normalizing by pace keeps every point directly comparable (and
+ * directly comparable to a goal's target_seconds, which is a time for
+ * the exact distance), the same way personalBests already compares
+ * tolerance-matched runs by pace rather than raw duration. */
+export function runningTimeHistory(runs: Run[], distance: StandardDistance): ProgressPoint[] {
+  return runsForDistance(runs, distance)
+    .sort((a, b) => {
+      if (a.session_date !== b.session_date) {
+        return a.session_date < b.session_date ? -1 : 1;
+      }
+      return a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
+    })
+    .map((r) => ({ date: r.session_date, value: pace(r) * distance.km }));
+}
+
+/** Ordinary least squares of time (seconds) against weeks-since-first-
+ * point. Needs at least two points spread across different days —
+ * with everything on one day the line has no defined slope. */
+function linearTrendPerWeek(history: ProgressPoint[]): number | null {
+  if (history.length < 2) return null;
+  const firstMs = Date.parse(history[0].date);
+  const xs = history.map((p) => (Date.parse(p.date) - firstMs) / MS_PER_WEEK);
+  const ys = history.map((p) => p.value);
+  const n = xs.length;
+  const sumX = xs.reduce((a, b) => a + b, 0);
+  const sumY = ys.reduce((a, b) => a + b, 0);
+  const sumXY = xs.reduce((sum, x, i) => sum + x * ys[i], 0);
+  const sumXX = xs.reduce((sum, x) => sum + x * x, 0);
+  const denom = n * sumXX - sumX * sumX;
+  if (denom === 0) return null;
+  return (n * sumXY - sumX * sumY) / denom;
+}
+
+export type RunningGoalProgress = {
+  targetSeconds: number;
+  startSeconds: number;
+  latestSeconds: number;
+  bestSeconds: number;
+  /** 0-100, how far latest is from start towards target. */
+  progressPct: number;
+  /** latest - start; negative means faster (an improvement). */
+  improvementSinceStart: number;
+  /** Seconds gained/lost per week from a linear fit of the whole
+   * history; null when there isn't enough spread of days to fit one. */
+  paceSecondsPerWeek: number | null;
+  improving: boolean;
+  /** ISO date the linear trend crosses the goal, or null when the goal
+   * is already met or the trend isn't heading towards it. */
+  etaDate: string | null;
+};
+
+/** Everything the goal card needs, derived purely from this distance's
+ * own time history — deliberately does not fold in data from other
+ * modalities (e.g. Gym strength trends) or a training plan: there's no
+ * validated formula linking them, so mixing them in would dress up a
+ * guess as a calculation. Structurally identical to Swimming's
+ * swimGoalProgress (same linear-trend-to-ETA approach), kept as its
+ * own copy rather than a shared helper since the two modalities'
+ * goal features evolved independently and this keeps either free to
+ * diverge later without touching the other. */
+export function runningGoalProgress(
+  history: ProgressPoint[],
+  targetSeconds: number,
+): RunningGoalProgress | null {
+  if (history.length === 0) return null;
+
+  const startSeconds = history[0].value;
+  const latestSeconds = history.at(-1)!.value;
+  const bestSeconds = Math.min(...history.map((p) => p.value));
+
+  const totalGap = startSeconds - targetSeconds;
+  const remainingGap = latestSeconds - targetSeconds;
+  const progressPct =
+    totalGap > 0
+      ? Math.min(100, Math.max(0, ((startSeconds - latestSeconds) / totalGap) * 100))
+      : latestSeconds <= targetSeconds
+        ? 100
+        : 0;
+
+  const paceSecondsPerWeek = linearTrendPerWeek(history);
+  const improving = paceSecondsPerWeek != null && paceSecondsPerWeek < 0;
+
+  let etaDate: string | null = null;
+  if (improving && remainingGap > 0 && paceSecondsPerWeek != null) {
+    const weeksNeeded = remainingGap / -paceSecondsPerWeek;
+    const lastMs = Date.parse(history.at(-1)!.date);
+    etaDate = new Date(lastMs + weeksNeeded * MS_PER_WEEK).toISOString().slice(0, 10);
+  }
+
+  return {
+    targetSeconds,
+    startSeconds,
+    latestSeconds,
+    bestSeconds,
+    progressPct,
+    improvementSinceStart: latestSeconds - startSeconds,
+    paceSecondsPerWeek,
+    improving,
+    etaDate,
+  };
 }

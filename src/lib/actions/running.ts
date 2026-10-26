@@ -148,3 +148,52 @@ export async function deleteLastRunAction(runId: string) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/achievements");
 }
+
+/** A goal is a single current value, not a log — re-submitting for the
+ * same standard distance replaces it (upsert), unlike runs. Called
+ * directly from a client component via useTransition, same plain-action
+ * convention as Swimming's setSwimGoalAction — there's no multi-field
+ * form state to track here. Hours are needed (unlike Swimming's
+ * minutes+seconds-only editor) since a marathon goal is several hours. */
+export async function setRunningGoalAction(
+  distanceValue: string,
+  hours: number,
+  minutes: number,
+  seconds: number,
+) {
+  const targetSeconds = hours * 3600 + minutes * 60 + seconds;
+  if (!(targetSeconds > 0)) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("running_goals").upsert(
+    {
+      user_id: user.id,
+      distance_value: distanceValue,
+      target_seconds: targetSeconds,
+    },
+    { onConflict: "user_id,distance_value" },
+  );
+
+  revalidatePath("/dashboard/running");
+}
+
+export async function clearRunningGoalAction(distanceValue: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from("running_goals")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("distance_value", distanceValue);
+
+  revalidatePath("/dashboard/running");
+}

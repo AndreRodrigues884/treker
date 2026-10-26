@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, getProfile } from "@/lib/supabase/queries";
-import { getRuns } from "@/lib/running/queries";
+import { getRunningGoals, getRuns } from "@/lib/running/queries";
 import { formatDuration, formatPace, pace, runsForDistance } from "@/lib/running/derive";
 import { STANDARD_DISTANCES } from "@/lib/constants/running";
 import { LogRunForm } from "@/components/running/log-run-form";
@@ -44,7 +44,7 @@ export default async function RunningPage() {
 }
 
 async function RunningStats({ userId }: { userId: string }) {
-  const runs = await getRuns(userId);
+  const [runs, goals] = await Promise.all([getRuns(userId), getRunningGoals(userId)]);
 
   if (runs.length === 0) {
     return (
@@ -57,6 +57,7 @@ async function RunningStats({ userId }: { userId: string }) {
   const distances = STANDARD_DISTANCES.map((d) => ({
     distance: d,
     runs: runsForDistance(runs, d),
+    goal: goals.find((g) => g.distance_value === d.value) ?? null,
   })).filter((d) => d.runs.length > 0);
 
   const recent = [...runs].reverse().slice(0, 10);
@@ -65,8 +66,13 @@ async function RunningStats({ userId }: { userId: string }) {
     <SectionTabs
       accent="emerald"
       recentLabel="Recent Runs"
-      progress={distances.map(({ distance, runs: distanceRuns }) => (
-        <DistanceProgressCard key={distance.value} distance={distance} runs={distanceRuns} />
+      progress={distances.map(({ distance, runs: distanceRuns, goal }) => (
+        <DistanceProgressCard
+          key={distance.value}
+          distance={distance}
+          runs={distanceRuns}
+          goal={goal}
+        />
       ))}
       recent={
         <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">

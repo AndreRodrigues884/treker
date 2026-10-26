@@ -300,6 +300,33 @@ export type Database = {
         }
         Relationships: []
       }
+      running_goals: {
+        Row: {
+          created_at: string
+          distance_value: string
+          id: string
+          target_seconds: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance_value: string
+          id?: string
+          target_seconds: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          distance_value?: string
+          id?: string
+          target_seconds?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       running_prs: {
         Row: {
           created_at: string

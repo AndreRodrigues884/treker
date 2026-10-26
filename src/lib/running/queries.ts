@@ -15,6 +15,17 @@ export const getRuns = cache(async (userId: string) => {
   return data ?? [];
 });
 
+/** One row per standard distance the user has set a goal for — small
+ * and cheap enough to fetch in full, same reasoning as getRuns. */
+export const getRunningGoals = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("running_goals")
+    .select("*")
+    .eq("user_id", userId);
+  return data ?? [];
+});
+
 /** Every running PR the user has ever hit, most recent first — same
  * append-only convention as Gym's getExercisePrs. */
 export const getRunningPrs = cache(async (userId: string) => {
