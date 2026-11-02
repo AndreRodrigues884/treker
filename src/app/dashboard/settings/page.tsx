@@ -1,14 +1,11 @@
 import { redirect } from "next/navigation";
-import {
-  getCurrentUser,
-  getProfile,
-  getDisplayName,
-  getNotificationsEnabled,
-} from "@/lib/supabase/queries";
+import { getCurrentUser, getProfile, getDisplayName } from "@/lib/supabase/queries";
 import { PreferencesForm } from "@/components/forms/preferences-form";
 import { ProfileForm } from "@/components/settings/profile-form";
+import { EmailChangeForm } from "@/components/settings/email-change-form";
 import { NotificationsToggle } from "@/components/settings/notifications-toggle";
 import { PasswordForm } from "@/components/settings/password-form";
+import { DeleteAccountForm } from "@/components/settings/delete-account-form";
 import { PrivacyPolicy } from "@/components/settings/privacy-policy";
 import { ThemeToggle } from "@/components/settings/theme-toggle";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
@@ -35,10 +32,16 @@ export default async function SettingsPage() {
             label: "Profile",
             icon: "👤",
             content: (
-              <ProfileForm
-                defaultName={getDisplayName(user) ?? ""}
-                email={user.email ?? ""}
-              />
+              <div className="max-w-2xl space-y-8">
+                <div className="space-y-3">
+                  <h2 className="text-lg font-semibold text-zinc-100">Name</h2>
+                  <ProfileForm defaultName={getDisplayName(user) ?? ""} />
+                </div>
+                <div className="space-y-3">
+                  <h2 className="text-lg font-semibold text-zinc-100">Email</h2>
+                  <EmailChangeForm currentEmail={user.email ?? ""} />
+                </div>
+              </div>
             ),
           },
           {
@@ -56,11 +59,7 @@ export default async function SettingsPage() {
             id: "notifications",
             label: "Notifications",
             icon: "🔔",
-            content: (
-              <NotificationsToggle
-                defaultEnabled={getNotificationsEnabled(user)}
-              />
-            ),
+            content: <NotificationsToggle />,
           },
           {
             id: "security",
@@ -73,6 +72,10 @@ export default async function SettingsPage() {
                     Change password
                   </h2>
                   <PasswordForm />
+                </div>
+                <div className="space-y-3">
+                  <h2 className="text-lg font-semibold text-red-300">Danger zone</h2>
+                  <DeleteAccountForm />
                 </div>
                 <div className="space-y-3">
                   <h2 className="text-lg font-semibold text-zinc-100">

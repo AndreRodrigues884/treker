@@ -46,8 +46,3 @@ export function getDisplayName(user: User): string | null {
   const name = user.user_metadata?.full_name;
   return typeof name === "string" && name.trim() ? name : null;
 }
-
-export function getNotificationsEnabled(user: User): boolean {
-  const value = user.user_metadata?.notifications_enabled;
-  return typeof value === "boolean" ? value : true;
-}

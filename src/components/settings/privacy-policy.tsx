@@ -37,8 +37,9 @@ export function PrivacyPolicy() {
           Deleting your account
         </h3>
         <p>
-          There&apos;s no self-serve delete button yet — reach out to the app
-          owner to have your account and all associated data removed.
+          Use the &quot;Delete account&quot; section under Security — it removes your
+          account and every row of data tied to it immediately and permanently,
+          no need to contact anyone.
         </p>
       </div>
     </div>

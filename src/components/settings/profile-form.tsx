@@ -3,17 +3,11 @@
 import { useActionState } from "react";
 import { updateProfileAction, type ProfileResult } from "@/lib/actions/profile";
 import { TextField } from "@/components/ui/text-field";
-import { UserIcon, MailIcon, SpinnerIcon, CheckIcon } from "@/components/ui/icons";
+import { UserIcon, SpinnerIcon, CheckIcon } from "@/components/ui/icons";
 
 const initialState: ProfileResult = null;
 
-export function ProfileForm({
-  defaultName,
-  email,
-}: {
-  defaultName: string;
-  email: string;
-}) {
+export function ProfileForm({ defaultName }: { defaultName: string }) {
   const [state, formAction, pending] = useActionState(
     updateProfileAction,
     initialState,
@@ -30,14 +24,6 @@ export function ProfileForm({
         autoComplete="name"
         defaultValue={defaultName}
         placeholder="How should we greet you?"
-      />
-      <TextField
-        label="Email"
-        icon={<MailIcon />}
-        type="email"
-        value={email}
-        disabled
-        readOnly
       />
 
       {state?.status === "error" && (

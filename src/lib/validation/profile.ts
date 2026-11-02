@@ -24,6 +24,11 @@ export const bodyMetricsSchema = z.object({
 });
 export type BodyMetricsInput = z.infer<typeof bodyMetricsSchema>;
 
+export const emailChangeSchema = z.object({
+  newEmail: z.string().trim().email("Enter a valid email address"),
+});
+export type EmailChangeInput = z.infer<typeof emailChangeSchema>;
+
 export const passwordChangeSchema = z
   .object({
     currentPassword: z.string().min(1, "Enter your current password"),
