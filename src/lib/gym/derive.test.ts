@@ -25,6 +25,7 @@ import {
   workoutsPerMuscleGroup,
 } from "./derive";
 import type { DeloadAcknowledgement, Exercise, ExercisePr, ExerciseSet } from "@/types/gym";
+import { MUSCLE_GROUPS } from "@/lib/constants/gym";
 
 function makeSet(overrides: Partial<ExerciseSet>): ExerciseSet {
   return {
@@ -295,7 +296,9 @@ describe("workoutsPerMuscleGroup", () => {
     expect(chest?.sessionsCount).toBe(1);
     expect(legs?.sessionsCount).toBe(1);
     expect(back?.sessionsCount).toBe(0);
-    expect(result).toHaveLength(7);
+    // Zero-filled for every known muscle group, not a hardcoded count —
+    // stays correct as the list of groups grows.
+    expect(result).toHaveLength(MUSCLE_GROUPS.length);
   });
 
   it("counts each distinct workout day separately, not the sets within it", () => {

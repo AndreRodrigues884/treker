@@ -8,6 +8,18 @@ const SRC: Record<MuscleGroup, string> = {
   biceps: "/muscle-icons/biceps.svg",
   triceps: "/muscle-icons/triceps.svg",
   core: "/muscle-icons/core.svg",
+  quads: "/muscle-icons/quads.png",
+  hamstrings: "/muscle-icons/hamstrings.png",
+  glutes: "/muscle-icons/glutes.png",
+  forearms: "/muscle-icons/forearms.png",
+  calves: "/muscle-icons/calves.png",
+  // No dedicated diagram for these two yet — each reuses its broader
+  // parent's silhouette (still the right body region, just not zoomed
+  // into the specific muscle) rather than showing nothing. Drop a real
+  // lats.svg/traps.svg into public/muscle-icons and point these at it
+  // whenever one's made.
+  lats: "/muscle-icons/back.svg",
+  traps: "/muscle-icons/back.svg",
 };
 
 /**

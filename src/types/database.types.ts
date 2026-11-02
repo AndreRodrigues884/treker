@@ -523,6 +523,13 @@ export type Database = {
         | "biceps"
         | "triceps"
         | "core"
+        | "quads"
+        | "hamstrings"
+        | "glutes"
+        | "lats"
+        | "traps"
+        | "forearms"
+        | "calves"
       set_difficulty: "easy" | "medium" | "hard"
       swim_stroke: "freestyle" | "backstroke" | "breaststroke" | "butterfly"
       training_goal:
@@ -672,6 +679,13 @@ export const Constants = {
         "biceps",
         "triceps",
         "core",
+        "quads",
+        "hamstrings",
+        "glutes",
+        "lats",
+        "traps",
+        "forearms",
+        "calves",
       ],
       set_difficulty: ["easy", "medium", "hard"],
       swim_stroke: ["freestyle", "backstroke", "breaststroke", "butterfly"],

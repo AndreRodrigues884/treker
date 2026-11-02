@@ -8,6 +8,12 @@
 // icon is a hand-drawn body-silhouette diagram (MuscleGroupIcon), not an
 // emoji field here — it keys off `value` directly, so there's nothing to
 // list per entry.
+//
+// quads/hamstrings/glutes/lats/traps/forearms/calves are more granular
+// options alongside the original broad groups (never a replacement for
+// them) — for anyone who splits e.g. leg training across several days
+// instead of one single "Legs" day. Pick whichever granularity fits
+// your own split; nothing forces one or the other.
 export const MUSCLE_GROUPS = [
   { value: "back", label: "Back", tint: "bg-orange-500/15", barTint: "bg-orange-500" },
   { value: "chest", label: "Chest", tint: "bg-blue-500/15", barTint: "bg-blue-500" },
@@ -16,6 +22,13 @@ export const MUSCLE_GROUPS = [
   { value: "biceps", label: "Biceps", tint: "bg-pink-500/15", barTint: "bg-pink-500" },
   { value: "triceps", label: "Triceps", tint: "bg-cyan-500/15", barTint: "bg-cyan-500" },
   { value: "core", label: "Core", tint: "bg-amber-500/15", barTint: "bg-amber-500" },
+  { value: "quads", label: "Quads", tint: "bg-lime-500/15", barTint: "bg-lime-500" },
+  { value: "hamstrings", label: "Hamstrings", tint: "bg-teal-500/15", barTint: "bg-teal-500" },
+  { value: "glutes", label: "Glutes", tint: "bg-fuchsia-500/15", barTint: "bg-fuchsia-500" },
+  { value: "lats", label: "Lats", tint: "bg-sky-500/15", barTint: "bg-sky-500" },
+  { value: "traps", label: "Traps", tint: "bg-violet-500/15", barTint: "bg-violet-500" },
+  { value: "forearms", label: "Forearms", tint: "bg-rose-500/15", barTint: "bg-rose-500" },
+  { value: "calves", label: "Calves", tint: "bg-indigo-500/15", barTint: "bg-indigo-500" },
 ] as const;
 
 export const EXECUTION_TYPES = [
