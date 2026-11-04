@@ -4,11 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { exerciseSchema, setLogSchema } from "@/lib/validation/gym";
 import type { PendingSet } from "@/components/gym/session-context";
-import { NEW_ROUTINE, VOLUME_MILESTONES_KG, type MuscleGroup } from "@/lib/constants/gym";
-import type { TablesInsert } from "@/types/database.types";
-import { getAllExercises, getAllExerciseSets } from "@/lib/gym/queries";
-import { getProfile } from "@/lib/supabase/queries";
-import { estimatedOneRepMax, totalVolumeEver } from "@/lib/gym/derive";
+import { NEW_ROUTINE, type MuscleGroup } from "@/lib/constants/gym";
 
 export type PrAchieved = {
   exerciseName: string;
@@ -265,11 +261,20 @@ export async function deleteExerciseAction(formData: FormData) {
   revalidatePath(`/dashboard/gym/${muscleGroup}`);
 }
 
+/** What save_gym_session (supabase/migrations/20261104000000_...) returns. */
+type SaveGymSessionResult = {
+  saved_count: number;
+  stale_count: number;
+  prs: { exercise_name: string; weight_kg: number; reps: number; one_rep_max: number }[];
+  milestones_kg: number[];
+};
+
 /**
  * Flushes every set staged in the client-side WorkoutSessionProvider for
- * this muscle group in one upsert — nothing before this point ever
- * touched the database, so a single "Save session" click is what makes
- * the whole visit's sets real (and countable in the progress charts).
+ * this muscle group. Validation of the input shape stays here (Zod);
+ * everything that needs the user's history — ownership check, PR and
+ * volume-milestone detection, and the writes themselves — happens inside
+ * the save_gym_session Postgres function, in one transaction.
  */
 export async function saveSessionAction(
   muscleGroup: MuscleGroup,
@@ -287,40 +292,9 @@ export async function saveSessionAction(
     return { status: "error", message: "Log at least one set first." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { status: "error", message: "Not authenticated." };
-
-  // Two different scopes needed here: this muscle group's own exercises,
-  // to validate what's being saved (same as before); and the user's
-  // *entire* history, since PRs and lifetime-volume milestones are
-  // account-wide, not scoped to one muscle group.
-  const [{ data: groupExercises }, allExercises, allSets, profile] = await Promise.all([
-    supabase.from("exercises").select("id").eq("user_id", user.id).eq("muscle_group", muscleGroup),
-    getAllExercises(user.id),
-    getAllExerciseSets(user.id),
-    getProfile(user.id),
-  ]);
-  const bodyweightKg = profile?.bodyweight_kg ?? null;
-
-  // Guard against stale client-side state — a set staged for an exercise
-  // that's since been deleted (or restored from an older backgrounded-tab
-  // localStorage backup) would otherwise hit the exercise_id foreign key
-  // and fail the whole batch with a raw Postgres error. Drop only the
-  // stale entries and save everything still valid instead.
-  const validExerciseIds = new Set((groupExercises ?? []).map((e) => e.id));
-
-  const sessionDate = new Date().toISOString().slice(0, 10);
-  const rows: Omit<TablesInsert<"exercise_sets">, "user_id">[] = [];
-  let staleCount = 0;
+  const sets = [];
   for (const [key, value] of entries) {
     const [exerciseId, setNumberRaw] = key.split(":");
-    if (!validExerciseIds.has(exerciseId)) {
-      staleCount++;
-      continue;
-    }
     const parsed = setLogSchema.safeParse({
       exerciseId,
       setNumber: setNumberRaw,
@@ -332,9 +306,8 @@ export async function saveSessionAction(
     if (!parsed.success) {
       return { status: "error", message: parsed.error.issues[0].message };
     }
-    rows.push({
+    sets.push({
       exercise_id: parsed.data.exerciseId,
-      session_date: sessionDate,
       set_number: parsed.data.setNumber,
       weight_kg: parsed.data.weightKg,
       reps: parsed.data.reps,
@@ -343,115 +316,41 @@ export async function saveSessionAction(
     });
   }
 
-  if (rows.length === 0) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Not authenticated." };
+
+  const sessionDate = new Date().toISOString().slice(0, 10);
+
+  const { data, error } = await supabase.rpc("save_gym_session", {
+    p_muscle_group: muscleGroup,
+    p_session_date: sessionDate,
+    p_sets: sets,
+  });
+  if (error) return { status: "error", message: error.message };
+
+  const result = data as unknown as SaveGymSessionResult;
+
+  if (result.saved_count === 0) {
     return {
       status: "error",
       message: "Those exercises no longer exist — refresh the page and try again.",
     };
   }
 
-  // --- Work out PRs and volume milestones from the history as it stood
-  // BEFORE this save, so a set can only ever PR against what actually
-  // came before it. Only load-tracking, rep-counted exercises are
-  // eligible — same rule the 1RM/Total Strength stats already use, since
-  // Epley's formula and a plain volume figure both assume a rep count. ---
-  const exerciseById = new Map(allExercises.map((e) => [e.id, e]));
-  const isPrEligible = (exerciseId: string) => {
-    const exercise = exerciseById.get(exerciseId);
-    return !!exercise && exercise.tracks_load && exercise.unit === "reps";
-  };
-
-  const priorBestByExercise = new Map<string, number>();
-  for (const s of allSets) {
-    if (!isPrEligible(s.exercise_id) || s.weight_kg == null) continue;
-    const effectiveBodyweight = exerciseById.get(s.exercise_id)?.adds_bodyweight
-      ? bodyweightKg
-      : null;
-    const oneRm = estimatedOneRepMax(s.weight_kg, s.reps, effectiveBodyweight);
-    if (oneRm > (priorBestByExercise.get(s.exercise_id) ?? 0)) {
-      priorBestByExercise.set(s.exercise_id, oneRm);
-    }
-  }
-
-  const bestNewByExercise = new Map<
-    string,
-    { weightKg: number; reps: number; oneRepMax: number }
-  >();
-  for (const row of rows) {
-    if (!isPrEligible(row.exercise_id) || row.weight_kg == null) continue;
-    const effectiveBodyweight = exerciseById.get(row.exercise_id)?.adds_bodyweight
-      ? bodyweightKg
-      : null;
-    const oneRm = estimatedOneRepMax(row.weight_kg, row.reps, effectiveBodyweight);
-    const current = bestNewByExercise.get(row.exercise_id);
-    if (!current || oneRm > current.oneRepMax) {
-      bestNewByExercise.set(row.exercise_id, {
-        weightKg: row.weight_kg,
-        reps: row.reps,
-        oneRepMax: oneRm,
-      });
-    }
-  }
-
-  const prRows: Omit<TablesInsert<"exercise_prs">, "user_id">[] = [];
-  const prsAchieved: PrAchieved[] = [];
-  for (const [exerciseId, best] of bestNewByExercise) {
-    if (best.oneRepMax <= (priorBestByExercise.get(exerciseId) ?? 0)) continue;
-    prRows.push({
-      exercise_id: exerciseId,
-      session_date: sessionDate,
-      weight_kg: best.weightKg,
-      reps: best.reps,
-      one_rep_max: best.oneRepMax,
-    });
-    prsAchieved.push({
-      exerciseName: exerciseById.get(exerciseId)?.name ?? "Exercise",
-      weightKg: best.weightKg,
-      reps: best.reps,
-      oneRepMax: best.oneRepMax,
-    });
-  }
-
-  const priorVolume = totalVolumeEver(allExercises, allSets);
-  const newVolume = rows.reduce((sum, row) => {
-    if (!isPrEligible(row.exercise_id) || row.weight_kg == null) return sum;
-    return sum + row.weight_kg * row.reps;
-  }, 0);
-  const totalVolumeAfter = priorVolume + newVolume;
-  const milestonesCrossed = VOLUME_MILESTONES_KG.filter(
-    (threshold) => priorVolume < threshold && totalVolumeAfter >= threshold,
-  );
-
-  // --- Only now write anything — everything above was read-only. ---
-  const { error } = await supabase
-    .from("exercise_sets")
-    .upsert(
-      rows.map((row) => ({ ...row, user_id: user.id })),
-      { onConflict: "exercise_id,session_date,set_number" },
-    );
-  if (error) return { status: "error", message: error.message };
-
-  // Best-effort: the sets themselves already saved above, so a hiccup
-  // recording an achievement shouldn't turn a real, successful save into
-  // an error.
-  if (prRows.length > 0) {
-    await supabase
-      .from("exercise_prs")
-      .insert(prRows.map((pr) => ({ ...pr, user_id: user.id })));
-  }
-  if (milestonesCrossed.length > 0) {
-    await supabase.from("volume_milestones").upsert(
-      milestonesCrossed.map((threshold) => ({
-        user_id: user.id,
-        threshold_kg: threshold,
-        achieved_at: sessionDate,
-      })),
-      { onConflict: "user_id,threshold_kg", ignoreDuplicates: true },
-    );
-  }
+  const prs: PrAchieved[] = result.prs.map((pr) => ({
+    exerciseName: pr.exercise_name,
+    weightKg: Number(pr.weight_kg),
+    reps: pr.reps,
+    oneRepMax: Number(pr.one_rep_max),
+  }));
+  const milestonesKg = result.milestones_kg.map(Number);
+  const staleCount = result.stale_count;
 
   revalidatePath(`/dashboard/gym/${muscleGroup}`);
-  if (prRows.length > 0 || milestonesCrossed.length > 0) {
+  if (prs.length > 0 || milestonesKg.length > 0) {
     revalidatePath("/dashboard/achievements");
   }
 
@@ -460,7 +359,7 @@ export async function saveSessionAction(
     ...(staleCount > 0 && {
       warning: `${staleCount} set${staleCount === 1 ? "" : "s"} referenced an exercise that no longer exists and ${staleCount === 1 ? "was" : "were"} skipped.`,
     }),
-    ...(prsAchieved.length > 0 && { prs: prsAchieved }),
-    ...(milestonesCrossed.length > 0 && { milestonesKg: [...milestonesCrossed] }),
+    ...(prs.length > 0 && { prs }),
+    ...(milestonesKg.length > 0 && { milestonesKg }),
   };
 }

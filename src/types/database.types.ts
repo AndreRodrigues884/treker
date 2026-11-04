@@ -509,7 +509,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      save_gym_session: {
+        Args: {
+          p_muscle_group: Database["public"]["Enums"]["muscle_group"]
+          p_session_date: string
+          p_sets: Json
+        }
+        Returns: Json
+      }
     }
     Enums: {
       execution_type: "straight" | "mini_pause" | "rest_pause"

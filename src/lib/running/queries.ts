@@ -1,18 +1,22 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 /** Every run the user has ever logged — small enough (one row per run)
  * to fetch in full and derive everything (weekly mileage, pace trend,
  * personal bests) client side, same reasoning as Swimming's queries. */
 export const getRuns = cache(async (userId: string) => {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("runs")
-    .select("*")
-    .eq("user_id", userId)
-    .order("session_date", { ascending: true })
-    .order("created_at", { ascending: true });
-  return data ?? [];
+  return fetchAllRows((from, to) =>
+    supabase
+      .from("runs")
+      .select("*")
+      .eq("user_id", userId)
+      .order("session_date", { ascending: true })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 });
 
 /** One row per standard distance the user has set a goal for — small

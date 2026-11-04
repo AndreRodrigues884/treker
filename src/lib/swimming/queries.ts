@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 /** Every time the user has ever logged, across every stroke/distance —
  * small enough (one row per session) that fetching it all at once and
@@ -7,13 +8,16 @@ import { createClient } from "@/lib/supabase/server";
  * than a query per event. */
 export const getSwimTimes = cache(async (userId: string) => {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("swim_times")
-    .select("*")
-    .eq("user_id", userId)
-    .order("session_date", { ascending: true })
-    .order("created_at", { ascending: true });
-  return data ?? [];
+  return fetchAllRows((from, to) =>
+    supabase
+      .from("swim_times")
+      .select("*")
+      .eq("user_id", userId)
+      .order("session_date", { ascending: true })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 });
 
 /** Every swim PR the user has ever hit, most recent first — same

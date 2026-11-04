@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { MuscleGroup } from "@/lib/constants/gym";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 // Row types (Exercise/ExerciseSet/Routine) now live in src/types/gym.ts —
 // import them from there, not from here.
@@ -46,13 +47,16 @@ export const getMuscleGroupsWithExercises = cache(async (userId: string) => {
 
 export const getExerciseSets = cache(async (exerciseId: string) => {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("exercise_sets")
-    .select("*")
-    .eq("exercise_id", exerciseId)
-    .order("session_date", { ascending: true })
-    .order("set_number", { ascending: true });
-  return data ?? [];
+  return fetchAllRows((from, to) =>
+    supabase
+      .from("exercise_sets")
+      .select("*")
+      .eq("exercise_id", exerciseId)
+      .order("session_date", { ascending: true })
+      .order("set_number", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 });
 
 /** Every set for a batch of exercises, in one query — use this instead of
@@ -63,13 +67,16 @@ export const getExerciseSetsForExercises = cache(
   async (exerciseIds: string[]) => {
     if (exerciseIds.length === 0) return [];
     const supabase = await createClient();
-    const { data } = await supabase
-      .from("exercise_sets")
-      .select("*")
-      .in("exercise_id", exerciseIds)
-      .order("session_date", { ascending: true })
-      .order("set_number", { ascending: true });
-    return data ?? [];
+    return fetchAllRows((from, to) =>
+      supabase
+        .from("exercise_sets")
+        .select("*")
+        .in("exercise_id", exerciseIds)
+        .order("session_date", { ascending: true })
+        .order("set_number", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
   },
 );
 
@@ -88,12 +95,15 @@ export const getAllExercises = cache(async (userId: string) => {
  * carries its own user_id, so this doesn't need a join. */
 export const getAllExerciseSets = cache(async (userId: string) => {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("exercise_sets")
-    .select("*")
-    .eq("user_id", userId)
-    .order("session_date", { ascending: true });
-  return data ?? [];
+  return fetchAllRows((from, to) =>
+    supabase
+      .from("exercise_sets")
+      .select("*")
+      .eq("user_id", userId)
+      .order("session_date", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 });
 
 /** Every personal record ever detected for this user, most recent first
