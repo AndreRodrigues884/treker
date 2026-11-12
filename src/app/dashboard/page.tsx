@@ -13,6 +13,7 @@ import { Greeting } from "@/components/dashboard/greeting";
 import { ModalityCard } from "@/components/dashboard/modality-card";
 import { WeeklyRing, type WeeklyRingSegment } from "@/components/dashboard/weekly-ring";
 import { BodyMetricsCard } from "@/components/dashboard/body-metrics-card";
+import { InProgressWorkoutCard } from "@/components/dashboard/in-progress-workout-card";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
 // One visual theme per training tier — the "gamified" part of the
@@ -65,6 +66,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Client-only (reads localStorage directly) and renders nothing
+       * when there's no staged workout, so it costs nothing to mount
+       * unconditionally above everything else — this is the most
+       * actionable thing on the page when it has something to say. */}
+      <InProgressWorkoutCard userId={user?.id} />
+
       {/* Greeting and the week total now live in one card, so both wait
        * on the same (cheap, cached) profile/sets query and stream in
        * together — showing half the card instantly and the other half a
