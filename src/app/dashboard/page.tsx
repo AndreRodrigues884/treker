@@ -66,12 +66,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Client-only (reads localStorage directly) and renders nothing
-       * when there's no staged workout, so it costs nothing to mount
-       * unconditionally above everything else — this is the most
-       * actionable thing on the page when it has something to say. */}
-      <InProgressWorkoutCard userId={user?.id} />
-
       {/* Greeting and the week total now live in one card, so both wait
        * on the same (cheap, cached) profile/sets query and stream in
        * together — showing half the card instantly and the other half a
@@ -79,6 +73,11 @@ export default async function DashboardPage() {
       <Suspense fallback={<SectionSpinner label="Loading your week…" className="h-28" />}>
         <OverviewHero user={user} />
       </Suspense>
+
+      {/* Client-only (reads localStorage directly) and renders nothing
+       * when there's no staged workout, so it costs nothing to mount
+       * unconditionally right under the hero. */}
+      <InProgressWorkoutCard userId={user?.id} />
 
       <Suspense fallback={<SectionSpinner label="Loading your modalities…" />}>
         <ModalityGrid userId={user?.id} />

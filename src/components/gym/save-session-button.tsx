@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState, type FormEvent } from "react";
 import { useWorkoutSession } from "@/components/gym/session-context";
 import { saveSessionAction, type GymFormResult, type PrAchieved } from "@/lib/actions/gym";
 import { SpinnerIcon } from "@/components/ui/icons";
@@ -21,6 +21,42 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
     null,
   );
 
+  // Intercepting a real <form> submit (rather than putting the confirm
+  // before a plain onClick) means both "Save session" buttons — the
+  // header one and the fixed mobile one, which targets this same form
+  // by id from outside it — go through one single check, instead of
+  // needing the same logic wired twice. skipConfirm is set right
+  // before requestSubmit() below, so that second, real submit event
+  // passes straight through instead of re-opening the modal.
+  const formRef = useRef<HTMLFormElement>(null);
+  const skipConfirm = useRef(false);
+  const [confirmingSave, setConfirmingSave] = useState(false);
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    if (skipConfirm.current) {
+      skipConfirm.current = false;
+      return;
+    }
+    e.preventDefault();
+    setConfirmingSave(true);
+  }
+
+  function handleConfirmSave() {
+    setConfirmingSave(false);
+    skipConfirm.current = true;
+    formRef.current?.requestSubmit();
+  }
+
+  // Discarding is purely local — nothing was ever written to the
+  // database, so there's nothing to delete server-side. Clearing
+  // `pending` also wipes session-context.tsx's own localStorage backup
+  // for this muscle group (the effect that mirrors it there runs on
+  // every change, including down to empty).
+  function handleDiscard() {
+    setConfirmingSave(false);
+    clearPending();
+  }
+
   // Each successful save produces a new `state` object — reacting to
   // that identity change during render (not in an effect) opens the
   // modal exactly once per save that earned something. The modal's own
@@ -37,7 +73,13 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
 
   return (
     <>
-      <form id={FORM_ID} action={formAction} className="flex flex-col items-end gap-2">
+      <form
+        id={FORM_ID}
+        ref={formRef}
+        onSubmit={handleSubmit}
+        action={formAction}
+        className="flex flex-col items-end gap-2"
+      >
         <button
           type="submit"
           disabled={isPending || count === 0}
@@ -85,6 +127,15 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
         </div>
       )}
 
+      {confirmingSave && (
+        <SaveSessionConfirmModal
+          count={count}
+          onConfirmSave={handleConfirmSave}
+          onDiscard={handleDiscard}
+          onCancel={() => setConfirmingSave(false)}
+        />
+      )}
+
       {showAchievements && state?.status === "success" && (
         <AchievementsModal
           prs={state.prs ?? []}
@@ -93,6 +144,59 @@ export function SaveSessionButton({ muscleGroup }: { muscleGroup: MuscleGroup })
         />
       )}
     </>
+  );
+}
+
+/** A deliberate stop between "Save session" and it actually happening
+ * — gives a way out other than saving, for a session the user decides
+ * they don't actually want kept. Discard is immediate, no nested
+ * confirmation: picking it from this already-deliberate list of
+ * options is itself the confirmation, and it only ever throws away a
+ * local draft that was never written anywhere. */
+function SaveSessionConfirmModal({
+  count,
+  onConfirmSave,
+  onDiscard,
+  onCancel,
+}: {
+  count: number;
+  onConfirmSave: () => void;
+  onDiscard: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Cancel"
+        onClick={onCancel}
+        className="absolute inset-0 bg-black/70"
+      />
+      <div className="relative w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-2xl">
+        <h2 className="text-base font-bold text-zinc-100">Save session?</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          You&apos;ve logged {count} {count === 1 ? "set" : "sets"}. Save them to your
+          history, or discard this session if you&apos;ve changed your mind — that can&apos;t
+          be undone.
+        </p>
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={onDiscard}
+            className="flex-1 rounded-lg border border-red-500/30 px-3 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
+          >
+            Discard session
+          </button>
+          <button
+            type="button"
+            onClick={onConfirmSave}
+            className="flex-1 rounded-lg bg-cyan-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:brightness-110"
+          >
+            Yes, save
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
