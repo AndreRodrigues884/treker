@@ -9,6 +9,14 @@ import { MuscleGroupIcon } from "@/components/gym/muscle-group-icon";
 export function MuscleGroupVolumeChart({ data }: { data: MuscleGroupVolume[] }) {
   const max = Math.max(...data.map((d) => d.sessionsCount), 1);
 
+  if (data.length === 0) {
+    return (
+      <p className="text-sm text-zinc-500">
+        No workouts logged yet — this fills in once you save your first session.
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-2.5">
       {data.map((d) => {

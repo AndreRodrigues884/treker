@@ -97,7 +97,7 @@ export function routineProgressHistory(
  * the real 1RM. Bodyweight comes back out of the result afterwards:
  * what's actionable is how much extra plate weight to load for a
  * 1-rep attempt, not a number that silently double-counts bodyweight
- * everywhere it's summed (e.g. in totalStrength across exercises).
+ * everywhere it's summed across exercises.
  * Omitted (or 0), this reduces to the plain formula, so every other
  * exercise is unaffected. */
 export function estimatedOneRepMax(
@@ -142,17 +142,13 @@ export function bestOneRepMaxPerExercise(
     .sort((a, b) => b.oneRepMax - a.oneRepMax);
 }
 
-export function totalStrength(perExercise: ExerciseOneRepMax[]): number {
-  return perExercise.reduce((sum, e) => sum + e.oneRepMax, 0);
-}
-
 /** Lifetime total kg ever moved (weight × reps, summed across every set
  * of every load-tracking, rep-counted exercise) — the basis for the
  * volume-milestone achievements. Bodyweight exercises don't have a
  * weight to sum, and a timed (seconds) exercise's `reps` column holds a
  * duration, not a rep count — multiplying that by weight wouldn't be a
- * real kg figure, so both are excluded, same as the 1RM/Total Strength
- * calculations already do. */
+ * real kg figure, so both are excluded, same as the 1RM calculation
+ * already does. */
 export function totalVolumeEver(exercises: Exercise[], sets: ExerciseSet[]): number {
   const loadExerciseIds = new Set(
     exercises.filter((e) => e.tracks_load && e.unit === "reps").map((e) => e.id),
@@ -203,47 +199,17 @@ export function oneRepMaxHistory(
     .map(([date, value]) => ({ date, value }));
 }
 
-/** "Total Strength" over time: the running best 1RM per exercise (a
- * personal-record high-water mark, unlike oneRepMaxHistory above),
- * summed across every load-tracking exercise as of each session date —
- * this is deliberately monotonic, since it only moves when a PR does. */
-export function totalStrengthHistory(
-  exercises: Exercise[],
-  sets: ExerciseSet[],
-  bodyweightKg?: number | null,
-): ProgressPoint[] {
-  const loadExerciseIds = new Set(
-    exercises.filter((e) => e.tracks_load && e.unit === "reps").map((e) => e.id),
-  );
-  const addsBodyweightIds = new Set(
-    exercises.filter((e) => e.adds_bodyweight).map((e) => e.id),
-  );
-  const relevant = sets.filter(
-    (s) => loadExerciseIds.has(s.exercise_id) && s.weight_kg != null,
-  );
-  const dates = [...new Set(relevant.map((s) => s.session_date))].sort();
-
-  const bestByExercise = new Map<string, number>();
-  return dates.map((date) => {
-    for (const s of relevant) {
-      if (s.session_date !== date) continue;
-      const effectiveBodyweight = addsBodyweightIds.has(s.exercise_id) ? bodyweightKg : null;
-      const oneRm = estimatedOneRepMax(s.weight_kg!, s.reps, effectiveBodyweight);
-      const prevBest = bestByExercise.get(s.exercise_id) ?? 0;
-      if (oneRm > prevBest) bestByExercise.set(s.exercise_id, oneRm);
-    }
-    const value = [...bestByExercise.values()].reduce((sum, v) => sum + v, 0);
-    return { date, value };
-  });
-}
-
 export type MuscleGroupVolume = { muscleGroup: MuscleGroup; sessionsCount: number };
 
 /** Workouts (distinct session dates) logged per muscle group, over the
- * last `weeks` weeks (all 7 groups always present, zero-filled, so the
- * chart never re-shapes). Counts training days, not sets — a 10-set and
- * a 3-set arm day both count as one workout here, same "workout" unit
- * sessionsThisWeek/averageSessionsPerWeek already use. */
+ * last `weeks` weeks — only muscle groups actually trained in that
+ * window show up at all, rather than zero-filling every one. With a
+ * dozen-plus possible groups now (the original 7 plus the more
+ * granular splits), listing every untouched one would make the chart
+ * mostly empty bars for anyone who sticks to a handful. Counts
+ * training days, not sets — a 10-set and a 3-set arm day both count as
+ * one workout here, same "workout" unit sessionsThisWeek/
+ * averageSessionsPerWeek already use. */
 export function workoutsPerMuscleGroup(
   exercises: Exercise[],
   sets: ExerciseSet[],
@@ -266,7 +232,7 @@ export function workoutsPerMuscleGroup(
   return MUSCLE_GROUPS.map((m) => ({
     muscleGroup: m.value,
     sessionsCount: datesByGroup.get(m.value)?.size ?? 0,
-  }));
+  })).filter((g) => g.sessionsCount > 0);
 }
 
 export type PlateauExercise = { exerciseId: string; exerciseName: string };

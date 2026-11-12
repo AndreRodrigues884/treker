@@ -19,13 +19,10 @@ import {
   setsForDate,
   setsThisWeek,
   latestPrPerExercise,
-  totalStrength,
-  totalStrengthHistory,
   totalVolumeEver,
   workoutsPerMuscleGroup,
 } from "./derive";
 import type { DeloadAcknowledgement, Exercise, ExercisePr, ExerciseSet } from "@/types/gym";
-import { MUSCLE_GROUPS } from "@/lib/constants/gym";
 
 function makeSet(overrides: Partial<ExerciseSet>): ExerciseSet {
   return {
@@ -188,7 +185,7 @@ describe("estimatedOneRepMax", () => {
   });
 });
 
-describe("bestOneRepMaxPerExercise / totalStrength", () => {
+describe("bestOneRepMaxPerExercise", () => {
   it("only considers load-tracking exercises, and takes each one's best set", () => {
     const bench = makeExercise({ id: "bench", name: "Bench", tracks_load: true });
     const curl = makeExercise({ id: "curl", name: "Curl", tracks_load: false });
@@ -201,7 +198,6 @@ describe("bestOneRepMaxPerExercise / totalStrength", () => {
     expect(perExercise).toEqual([
       { exerciseId: "bench", exerciseName: "Bench", oneRepMax: estimatedOneRepMax(100, 5) },
     ]);
-    expect(totalStrength(perExercise)).toBeCloseTo(estimatedOneRepMax(100, 5));
   });
 
   it("excludes timed (seconds) exercises even if they track load", () => {
@@ -277,7 +273,7 @@ describe("latestPrPerExercise", () => {
 });
 
 describe("workoutsPerMuscleGroup", () => {
-  it("counts distinct workout days within the window and zero-fills every muscle group", () => {
+  it("counts distinct workout days within the window, omitting untouched muscle groups", () => {
     const bench = makeExercise({ id: "bench", muscle_group: "chest" });
     const flye = makeExercise({ id: "flye", muscle_group: "chest" });
     const squat = makeExercise({ id: "squat", muscle_group: "legs" });
@@ -292,13 +288,12 @@ describe("workoutsPerMuscleGroup", () => {
     const result = workoutsPerMuscleGroup([bench, flye, squat], sets, 8);
     const chest = result.find((r) => r.muscleGroup === "chest");
     const legs = result.find((r) => r.muscleGroup === "legs");
-    const back = result.find((r) => r.muscleGroup === "back");
     expect(chest?.sessionsCount).toBe(1);
     expect(legs?.sessionsCount).toBe(1);
-    expect(back?.sessionsCount).toBe(0);
-    // Zero-filled for every known muscle group, not a hardcoded count —
-    // stays correct as the list of groups grows.
-    expect(result).toHaveLength(MUSCLE_GROUPS.length);
+    // Never trained (within the window) -> not in the list at all,
+    // not a zero-filled entry.
+    expect(result.find((r) => r.muscleGroup === "back")).toBeUndefined();
+    expect(result).toHaveLength(2);
   });
 
   it("counts each distinct workout day separately, not the sets within it", () => {
@@ -612,50 +607,6 @@ describe("oneRepMaxHistory", () => {
     expect(oneRepMaxHistory(sets, 70)).toEqual([
       { date: "2026-01-01", value: estimatedOneRepMax(10, 5, 70) },
     ]);
-  });
-});
-
-describe("totalStrengthHistory", () => {
-  it("sums each exercise's running best 1RM so far, per date", () => {
-    const bench = makeExercise({ id: "bench", tracks_load: true });
-    const squat = makeExercise({ id: "squat", tracks_load: true });
-    const sets = [
-      makeSet({ exercise_id: "bench", session_date: "2026-01-01", weight_kg: 100, reps: 5 }),
-      makeSet({ exercise_id: "squat", session_date: "2026-01-08", weight_kg: 140, reps: 5 }),
-      // A lighter bench day after the PR shouldn't pull the total down.
-      makeSet({ exercise_id: "bench", session_date: "2026-01-15", weight_kg: 90, reps: 5 }),
-    ];
-    const history = totalStrengthHistory([bench, squat], sets);
-    expect(history.map((p) => p.date)).toEqual([
-      "2026-01-01",
-      "2026-01-08",
-      "2026-01-15",
-    ]);
-    expect(history[0].value).toBeCloseTo(estimatedOneRepMax(100, 5));
-    expect(history[1].value).toBeCloseTo(
-      estimatedOneRepMax(100, 5) + estimatedOneRepMax(140, 5),
-    );
-    // Still the bench PR (100x5), not the lighter 90x5 day.
-    expect(history[2].value).toBeCloseTo(history[1].value);
-  });
-
-  it("ignores exercises that don't track load", () => {
-    const bodyweight = makeExercise({ id: "bw", tracks_load: false });
-    const sets = [makeSet({ exercise_id: "bw", session_date: "2026-01-01", reps: 12 })];
-    expect(totalStrengthHistory([bodyweight], sets)).toEqual([]);
-  });
-
-  it("only folds bodyweight into exercises marked adds_bodyweight", () => {
-    const pullups = makeExercise({ id: "pullups", adds_bodyweight: true });
-    const bench = makeExercise({ id: "bench", adds_bodyweight: false });
-    const sets = [
-      makeSet({ exercise_id: "pullups", session_date: "2026-01-01", weight_kg: 10, reps: 5 }),
-      makeSet({ exercise_id: "bench", session_date: "2026-01-01", weight_kg: 10, reps: 5 }),
-    ];
-    const history = totalStrengthHistory([pullups, bench], sets, 70);
-    expect(history[0].value).toBeCloseTo(
-      estimatedOneRepMax(10, 5, 70) + estimatedOneRepMax(10, 5),
-    );
   });
 });
 

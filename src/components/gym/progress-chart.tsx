@@ -14,12 +14,11 @@ const DEFAULT_COLOR = "#818cf8";
 const MAX_X_LABELS = 6;
 
 function defaultFormatValue(unit: string) {
-  return (value: number) => {
-    const rounded = Math.round(value);
-    return rounded >= 1000
-      ? `${(rounded / 1000).toFixed(1)}k${unit}`
-      : `${rounded}${unit}`;
-  };
+  // No "k" abbreviation for large numbers — it collided with a unit
+  // that itself starts with "k" (volume in "kg" rendered as "5.3kkg",
+  // reading like a typo). Grouped digits read just as cleanly without
+  // that risk, for every unit.
+  return (value: number) => `${Math.round(value).toLocaleString()}${unit}`;
 }
 
 /** Evenly-spaced indices to label on the X axis — every point if there

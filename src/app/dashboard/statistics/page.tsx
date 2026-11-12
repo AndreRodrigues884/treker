@@ -8,8 +8,6 @@ import {
   deloadExercises,
   oneRepMaxHistory,
   sessionsPerWeekHistory,
-  totalStrength,
-  totalStrengthHistory,
   workoutsPerMuscleGroup,
 } from "@/lib/gym/derive";
 import { getRuns } from "@/lib/running/queries";
@@ -27,7 +25,6 @@ import { DeloadCard } from "@/components/statistics/deload-card";
 import { StatisticsFilter, type StatSection } from "@/components/statistics/statistics-filter";
 import { SectionSpinner } from "@/components/ui/section-spinner";
 
-const VIOLET = "#a78bfa";
 const EMERALD = "#34d399";
 const ALL_MODALITIES: Modality[] = ["gym", "swimming", "running"];
 
@@ -52,14 +49,6 @@ export default async function StatisticsPage() {
 
   if (availableModalities.includes("gym")) {
     sections.push(
-      {
-        modality: "gym",
-        content: (
-          <Suspense fallback={<SectionSpinner label="Total Strength…" />}>
-            <TotalStrengthSection userId={user.id} />
-          </Suspense>
-        ),
-      },
       {
         modality: "gym",
         content: (
@@ -125,49 +114,6 @@ export default async function StatisticsPage() {
       </div>
 
       <StatisticsFilter availableModalities={availableModalities} sections={sections} />
-    </div>
-  );
-}
-
-async function TotalStrengthSection({ userId }: { userId: string }) {
-  const [exercises, sets, profile] = await Promise.all([
-    getAllExercises(userId),
-    getAllExerciseSets(userId),
-    getProfile(userId),
-  ]);
-  const bodyweightKg = profile?.bodyweight_kg ?? null;
-
-  const oneRepMaxes = bestOneRepMaxPerExercise(exercises, sets, bodyweightKg);
-  const strength = totalStrength(oneRepMaxes);
-  const strengthHistory = totalStrengthHistory(exercises, sets, bodyweightKg);
-  const strengthGain =
-    strengthHistory.length > 1 ? strength - strengthHistory[0].value : 0;
-
-  return (
-    <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h2 className="font-semibold text-zinc-100">Total Strength</h2>
-          <p className="text-xs text-zinc-500">
-            Sum of accumulated 1RM · every exercise
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold text-violet-400">
-            {formatKg(strength)}
-          </p>
-          {strengthGain > 0 && (
-            <p className="text-xs font-medium text-emerald-400">
-              +{formatKg(strengthGain)} gained
-            </p>
-          )}
-        </div>
-      </div>
-      {strengthHistory.length < 2 ? (
-        <EmptyNote>Log at least two sessions to see your progress.</EmptyNote>
-      ) : (
-        <ProgressChart points={strengthHistory} unit="kg" color={VIOLET} />
-      )}
     </div>
   );
 }
@@ -306,10 +252,6 @@ async function SwimTimesSection({ userId }: { userId: string }) {
   return <SwimTimesCard events={events} />;
 }
 
-function formatKg(value: number) {
-  return `${value.toFixed(1)}kg`;
-}
-
 function StatCard({
   title,
   subtitle,
@@ -331,8 +273,4 @@ function StatCard({
       {children}
     </div>
   );
-}
-
-function EmptyNote({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-zinc-500">{children}</p>;
 }
